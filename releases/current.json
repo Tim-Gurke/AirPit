@@ -1,0 +1,9 @@
+{
+  "version": "0.0.1",
+  "versionCode": 1,
+  "apk": "releases/AirPit-v0.0.1.apk",
+  "sha256": "e628bbccb748ce0d2d924ee703020c8447cae172421cdc3639c26f5c6881921c",
+  "source_sha256": "471690bb1c8b3f188869352e71513c20ee13912abdf568854354c03a5464231a",
+  "minimumAndroid": "9",
+  "hardwareTest": "S10 and Windows Bluetooth test pending"
+}
