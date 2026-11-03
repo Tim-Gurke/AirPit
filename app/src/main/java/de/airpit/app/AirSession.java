@@ -3,6 +3,7 @@ package de.airpit.app;
 import android.content.*;
 import android.os.*;
 import de.airpit.app.core.TextDraft;
+import de.airpit.app.core.MotionAxes;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -56,7 +57,7 @@ public final class AirSession {
         // Screen-off mode keeps only an explicitly started air session running.
     }
     public void hold(){motion.hold(holding||touching);}
-    public void configure(){motion.gain=500+prefs.getInt("speed",50)*24;motion.smoothing=.012+prefs.getInt("smooth",35)*.0015;motion.deadzone=.004+prefs.getInt("steady",30)*.0005;motion.invertX=prefs.getBoolean("invertX",false);motion.invertY=prefs.getBoolean("invertY",false);}
+    public void configure(){motion.gain=500+prefs.getInt("speed",50)*24;motion.smoothing=.012+prefs.getInt("smooth",35)*.0015;motion.deadzone=.004+prefs.getInt("steady",30)*.0005;motion.invertX=prefs.getBoolean("invertX",false);motion.invertY=prefs.getBoolean("invertY",false);motion.setAxes(prefs.getInt("gyroHorizontal",MotionAxes.TURN),prefs.getInt("gyroVertical",MotionAxes.FORWARD_TILT));}
     public void updatePower(){
         boolean needed=serviceRunning&&airOn&&keepOff()&&hidReady();
         if(needed&&wake==null){PowerManager p=(PowerManager)context.getSystemService(Context.POWER_SERVICE);if(p!=null){wake=p.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"AirPit:motion");wake.setReferenceCounted(false);}}

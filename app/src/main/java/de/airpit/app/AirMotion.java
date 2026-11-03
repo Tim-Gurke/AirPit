@@ -6,14 +6,16 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import de.airpit.app.core.MotionFilter;
+import de.airpit.app.core.MotionAxes;
 
-/** Relative air pointing using yaw projected onto gravity and phone X pitch. */
+/** Relative air pointing with selectable, rotation-aware gyro motions. */
 public final class AirMotion implements SensorEventListener {
     public interface Sink { void move(int x,int y);void calibrated(); }
     private final SensorManager manager;
     private final Sensor gyro,gravity;
     private final Sink sink;
     private final MotionFilter filter=new MotionFilter();
+    private MotionAxes axes=new MotionAxes(MotionAxes.TURN,MotionAxes.FORWARD_TILT);
     private long previous,calibrationStart;
     private final double[] bias=new double[3],sum=new double[3];
     private final double[] up={0,0,1};
@@ -30,6 +32,10 @@ public final class AirMotion implements SensorEventListener {
         gravity=preferred!=null?preferred:(manager==null?null:manager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER));
     }
     public boolean available() {return gyro!=null;}
+    public void setAxes(int horizontal,int vertical){
+        MotionAxes selected=new MotionAxes(horizontal,vertical);
+        if(selected.horizontal!=axes.horizontal||selected.vertical!=axes.vertical){axes=selected;previous=0;filter.reset();}
+    }
     public boolean start() {
         if(gyro==null)return false;
         stop();running=manager.registerListener(this,gyro,SensorManager.SENSOR_DELAY_GAME);
@@ -63,11 +69,8 @@ public final class AirMotion implements SensorEventListener {
         }
         long last=previous;previous=e.timestamp;
         if(holding||last==0)return;
-        double norm=Math.sqrt(up[0]*up[0]+up[1]*up[1]+up[2]*up[2]);
-        double yaw=norm<0.2?-(e.values[2]-bias[2]):
-            -((e.values[0]-bias[0])*up[0]+(e.values[1]-bias[1])*up[1]+(e.values[2]-bias[2])*up[2])/norm;
-        double pitch=rotation==1?-(e.values[1]-bias[1]):rotation==3?(e.values[1]-bias[1]):rotation==2?(e.values[0]-bias[0]):-(e.values[0]-bias[0]);
-        int[] move=filter.step(yaw,pitch,(e.timestamp-last)/1e9,gain,smoothing,deadzone,invertX,invertY);
+        double[] rates=axes.rates(e.values[0]-bias[0],e.values[1]-bias[1],e.values[2]-bias[2],up[0],up[1],up[2],rotation);
+        int[] move=filter.step(rates[0],rates[1],(e.timestamp-last)/1e9,gain,smoothing,deadzone,invertX,invertY);
         if(move[0]!=0||move[1]!=0)sink.move(move[0],move[1]);
     }
     @Override public void onAccuracyChanged(Sensor sensor,int accuracy) {}

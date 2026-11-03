@@ -4,6 +4,7 @@ import java.util.*;
 public final class CoreChecks {
     private static int count;
     private static void check(boolean v,String name){count++;if(!v)throw new AssertionError(name);}
+    private static boolean sameRates(double[] a,double[] b){return a.length==b.length&&Math.abs(a[0]-b[0])<1e-10&&Math.abs(a[1]-b[1])<1e-10;}
     private static GermanKeyboard.Stroke first(String s){return GermanKeyboard.encode(s).get(0);}
     public static void main(String[] args){
         check(first("y").key==29&&first("z").key==28,"German Y/Z");
@@ -43,6 +44,35 @@ public final class CoreChecks {
         check(Arrays.equals(f.step(1,1,1,1000,0.01,0,false,false),new int[]{0,0}),"No jump after pause");
         f.reset();check(f.step(100,100,0.02,100000,0.001,0,false,false)[0]==127,"Motion saturates safely");
         check(Arrays.equals(f.step(Double.NaN,0,0.02,1000,0.01,0,false,false),new int[]{0,0}),"Invalid sensor data");
+        MotionAxes standard=new MotionAxes(MotionAxes.TURN,MotionAxes.FORWARD_TILT);
+        check(sameRates(standard.rates(2,3,5,0,0,1,0),new double[]{-5,-2}),"Existing portrait turn/pitch mapping preserved");
+        MotionAxes side=new MotionAxes(MotionAxes.SIDE_TILT,MotionAxes.FORWARD_TILT);
+        check(sameRates(side.rates(0,1,0,0,0,1,0),new double[]{1,0}),"Side tilt moves horizontally without forward movement");
+        check(sameRates(side.rates(1,0,0,0,0,1,0),new double[]{0,-1}),"Forward tilt remains vertical in side mode");
+        check(sameRates(side.rates(0,0,1,0,0,1,0),new double[]{0,0}),"Flat phone twist does not drive side-tilt mode");
+        double[][] expected={{3,-2},{-2,-3},{-3,2},{2,3}};
+        for(int rotation=0;rotation<4;rotation++){
+            double[] mapped=side.rates(2,3,5,0,0,1,rotation);
+            check(sameRates(mapped,expected[rotation]),"Screen-relative axes follow display rotation "+rotation);
+            check(sameRates(side.swapped().rates(2,3,5,0,0,1,rotation),new double[]{mapped[1],mapped[0]}),"Swap exchanges complete axes in rotation "+rotation);
+        }
+        check(Math.abs(standard.rates(2,3,5,0,3,4,0)[0]+5.8)<1e-10,"Gravity-projected original turn mapping retained");
+        check(standard.rates(2,3,5,0,0,0,0)[0]==-5,"Turn mapping retains missing-gravity fallback");
+        MotionAxes selected=standard.horizontal(MotionAxes.FORWARD_TILT);
+        check(selected.horizontal==MotionAxes.FORWARD_TILT&&selected.vertical==MotionAxes.TURN,"Choosing occupied horizontal axis swaps assignments");
+        selected=standard.vertical(MotionAxes.TURN);
+        check(selected.horizontal==MotionAxes.FORWARD_TILT&&selected.vertical==MotionAxes.TURN,"Choosing occupied vertical axis swaps assignments");
+        selected=side.swapped().swapped();
+        check(selected.horizontal==side.horizontal&&selected.vertical==side.vertical,"Swapping twice restores previous selection");
+        selected=new MotionAxes(99,-1);
+        check(selected.horizontal==MotionAxes.TURN&&selected.vertical==MotionAxes.FORWARD_TILT,"Invalid saved axes recover original defaults");
+        for(int x=0;x<3;x++)for(int y=0;y<3;y++){
+            MotionAxes axes=new MotionAxes(x,y);
+            check(axes.horizontal!=axes.vertical,"Saved selections keep independent motions "+x+"/"+y);
+        }
+        f.reset();int[] sideNormal=f.step(1,-1,.02,1000,.001,0,false,false);
+        f.reset();int[] sideInverted=f.step(1,-1,.02,1000,.001,0,true,true);
+        check(sideNormal[0]==-sideInverted[0]&&sideNormal[1]==-sideInverted[1],"Direction inversion still follows selected axes");
         System.out.println("PASS: "+count+" HID, German keyboard and motion checks");
     }
 }

@@ -236,8 +236,8 @@ public final class HidController {
     }
     public void releaseMouse() {synchronized(mouseLock){buttons=0;pendingX=pendingY=pendingWheel=0;mouseDirty=true;}}
     public void releaseAll() {
-        clearLocalInput();releaseMouse();
-        pointer.execute(()->{if(connected()){report(HidReports.MOUSE,HidReports.mouse(0,0,0,0));report(HidReports.KEYBOARD,new byte[8]);}});
+        clearLocalInput();releaseMouse();keyboard.releaseKeys();
+        pointer.execute(()->{if(connected())report(HidReports.MOUSE,HidReports.mouse(0,0,0,0));});
     }
     private void clearLocalInput() {
         generation++;keyboard.cancel();if(unicode.sending)unicode.close();

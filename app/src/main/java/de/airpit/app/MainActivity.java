@@ -17,6 +17,7 @@ import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import de.airpit.app.core.TileLayout;
+import de.airpit.app.core.MotionAxes;
 import java.util.*;
 
 public final class MainActivity extends Activity {
@@ -83,6 +84,17 @@ public final class MainActivity extends Activity {
     private Button rowButton(LinearLayout parent,String value,Runnable action,boolean primary){
         Button b=button(parent,value,action,primary);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,Math.max(dp(32),u(47)),1);p.setMargins(u(2),u(4),u(2),0);b.setLayoutParams(p);return b;
     }
+    private ImageButton themeButton(LinearLayout parent){
+        ImageButton b=new ImageButton(this);
+        b.setImageResource(dark?R.drawable.ic_theme_light:R.drawable.ic_theme_dark);
+        b.setColorFilter(text);b.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        b.setMinimumWidth(0);b.setMinimumHeight(0);b.setPadding(u(9),u(9),u(9),u(9));
+        b.setBackground(shape(secondary,border,12));
+        b.setContentDescription(dark?"Helles Design einschalten":"Dunkles Design einschalten");
+        b.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);dark=!dark;prefs.edit().putBoolean("dark",dark).apply();build();});
+        parent.addView(b,new LinearLayout.LayoutParams(Math.max(dp(32),u(42)),Math.max(dp(32),u(40))));
+        return b;
+    }
     private void style(Button b,boolean primary){
         b.setBackground(shape(primary?accent:secondary,primary?accent:border,12));
         b.setBackgroundTintList(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{android.R.attr.state_pressed},new int[]{}},new int[]{dark?0xff24313f:0xffe5eaf0,primary?(dark?0xff91e8d1:0xff005da8):(dark?0xff40536a:0xffd3e2ed),primary?accent:secondary}));
@@ -105,8 +117,7 @@ public final class MainActivity extends Activity {
         ImageView icon=new ImageView(this);icon.setImageResource(R.drawable.ic_airpit);icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);header.addView(icon,new LinearLayout.LayoutParams(u(43),u(43)));
         LinearLayout brand=column();LinearLayout.LayoutParams brandP=new LinearLayout.LayoutParams(0,-2,1);brandP.setMarginStart(u(4));header.addView(brand,brandP);
         label(brand,"AirPit",23,text,true).setPadding(0,0,0,0);label(brand,"Version "+BuildConfig.VERSION_NAME,10,muted,false).setPadding(0,0,0,0);
-        Button theme=rowButton(header,dark?"☼":"◐",()->{dark=!dark;prefs.edit().putBoolean("dark",dark).apply();build();},false);
-        theme.setContentDescription(dark?"Helles Design einschalten":"Dunkles Design einschalten");theme.setTextSize(23*scale);theme.setLayoutParams(new LinearLayout.LayoutParams(u(42),u(40)));
+        themeButton(header);
         Button gear=rowButton(header,"⚙",this::settings,false);gear.setContentDescription("Einstellungen");gear.setTextSize(22*scale);LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(u(42),u(40));gp.setMarginStart(u(5));gear.setLayoutParams(gp);
         LinearLayout strip=row();strip.setPadding(u(14),0,u(14),0);root.addView(strip);
         status=new TextView(this);status.setTextColor(muted);status.setTextSize(13*scale);status.setTypeface(null,Typeface.BOLD);status.setMaxLines(2);status.setEllipsize(TextUtils.TruncateAt.END);strip.addView(status,new LinearLayout.LayoutParams(0,-2,1));
@@ -285,12 +296,40 @@ public final class MainActivity extends Activity {
         slider(box,"Darstellungsgröße","uiScale",100,50,150,()->build());
         LinearLayout reset=row();box.addView(reset);rowButton(reset,"100 %",()->{prefs.edit().putInt("uiScale",100).apply();if(uiScaleBar!=null)uiScaleBar.setProgress(50);build();},false);
         slider(box,"Empfindlichkeit","speed",50,0,100,session::configure);slider(box,"Glättung","smooth",35,0,100,session::configure);slider(box,"Zitterfilter","steady",30,0,100,session::configure);
+        axisSettings(box);
         toggle(box,"Richtung links / rechts umkehren","invertX",session::configure);toggle(box,"Richtung hoch / runter umkehren","invertY",session::configure);
         toggle(box,"Erklärungen anzeigen","help",()->showPage());
         Switch off=toggle(box,"Bei Display aus weitersteuern","screenOff",()->{if(prefs.getBoolean("screenOff",false)&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){prefs.edit().putBoolean("screenOff",false).apply();pendingScreenOff=true;requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATIONS);}else session.setKeepOff(prefs.getBoolean("screenOff",false));});
         hint(box,"Bluetooth bleibt beim App-Wechsel verbunden. Aktive Air-Maus im Display-aus-Modus über die Benachrichtigung stoppen.");
         button(box,"Diagnose ohne Textinhalte",this::diagnostics,false);
         ScrollView scroll=new ScrollView(this);scroll.addView(box);dialog().setTitle("Einstellungen").setView(scroll).setPositiveButton("Fertig",(d,w)->{saveDraft();build();}).show();
+    }
+    private MotionAxes motionAxes(){return new MotionAxes(prefs.getInt("gyroHorizontal",MotionAxes.TURN),prefs.getInt("gyroVertical",MotionAxes.FORWARD_TILT));}
+    private void saveAxes(MotionAxes axes){prefs.edit().putInt("gyroHorizontal",axes.horizontal).putInt("gyroVertical",axes.vertical).apply();session.configure();}
+    private static final String[] AXIS_NAMES={"Drehen","Seitlich neigen / schwenken","Vor / zurück neigen"};
+    private void axisSettings(LinearLayout box){
+        label(box,"Bewegungsachsen",16,text,true);
+        Button[] choices=new Button[2];
+        for(int i=0;i<2;i++){
+            final int direction=i;
+            choices[i]=button(box,"",()->{
+                MotionAxes axes=motionAxes();
+                dialog().setTitle(direction==0?"Links / rechts steuern":"Hoch / runter steuern")
+                    .setSingleChoiceItems(AXIS_NAMES,direction==0?axes.horizontal:axes.vertical,(d,which)->{
+                        MotionAxes current=motionAxes();saveAxes(direction==0?current.horizontal(which):current.vertical(which));
+                        updateAxisLabels(choices);d.dismiss();
+                    }).setNegativeButton("Zurück",null).show();
+            },false);
+            choices[i].setLayoutParams(new LinearLayout.LayoutParams(-1,Math.max(dp(48),u(58))));
+        }
+        button(box,"Achsen tauschen",()->{saveAxes(motionAxes().swapped());updateAxisLabels(choices);},false);
+        hint(box,"Seitlich neigen: die linke oder rechte Handykante absenken. Jede Bewegung steuert eine Richtung; belegte Zuordnungen werden getauscht.");
+        updateAxisLabels(choices);
+    }
+    private void updateAxisLabels(Button[] choices){
+        MotionAxes axes=motionAxes();
+        String horizontal="Links / rechts: "+AXIS_NAMES[axes.horizontal],vertical="Hoch / runter: "+AXIS_NAMES[axes.vertical];
+        choices[0].setText(horizontal);choices[0].setContentDescription(horizontal);choices[1].setText(vertical);choices[1].setContentDescription(vertical);
     }
     private Switch toggle(LinearLayout p,String name,String key,Runnable apply){Switch s=new Switch(this);s.setText(name);s.setTextSize(13*scale);s.setTextColor(text);s.setPadding(0,u(9),0,u(9));s.setChecked(prefs.getBoolean(key,false));p.addView(s,new LinearLayout.LayoutParams(-1,-2));s.setOnCheckedChangeListener((b,v)->{prefs.edit().putBoolean(key,v).apply();apply.run();});return s;}
     private void slider(LinearLayout p,String name,String key,int fallback,int min,int max,Runnable apply){

@@ -1,12 +1,12 @@
-# AirPit 0.0.2
+# AirPit 0.0.3
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.2/AirPit-v0.0.2.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.2/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.2.md)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.3/AirPit-v0.0.3.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.3/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.3.md)
 
 ## Mit Windows verbinden
 
-1. APK auf dem S10 installieren; 0.0.2 lässt sich mit derselben Signierung über 0.0.1 installieren.
+1. APK auf dem S10 installieren; 0.0.3 lässt sich mit derselben Signierung über 0.0.1 oder 0.0.2 installieren.
 2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
 3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
 4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
@@ -20,7 +20,8 @@ Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen
 
 | Funktion | Bedienung |
 |---|---|
-| Air-Maus | Handy leicht drehen; über die Air-Maus-Kachel ein-/ausschalten |
+| Air-Maus | Handy leicht drehen oder neigen; über die Air-Maus-Kachel ein-/ausschalten |
+| Bewegungsachsen | Unter Einstellungen links/rechts und hoch/runter frei zuordnen oder mit „Achsen tauschen“ wechseln |
 | Kalibrieren | Etwa eine Sekunde stillhalten |
 | Umgreifen | Taste gedrückt halten, Handy neu ausrichten, loslassen |
 | Touchpad | Ein Finger bewegt; tippen klickt links; zwei Finger scrollen oder tippen kurz für Rechtsklick |
@@ -34,7 +35,9 @@ Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen
 
 Hoch- und Querformat besitzen eigene gespeicherte Layouts. Touchpad, Air-Steuerung, Maustasten, Scrollen, Texteingabe und Direkttasten lassen sich gemeinsam auf der Bedienseite verwenden. Die Touchpad-Höhe wird unabhängig von der Darstellungsgröße eingestellt.
 
-Unter **Einstellungen**: Darstellungsgröße **50–150 %**, Rückstellung auf 100 %, Empfindlichkeit, Glättung, Zitterfilter, Richtungsumkehr und ein-/ausblendbare Erklärungen.
+Unter **Einstellungen**: Darstellungsgröße **50–150 %**, Rückstellung auf 100 %, Empfindlichkeit, Glättung, Zitterfilter, Bewegungsachsen, Richtungsumkehr und ein-/ausblendbare Erklärungen.
+
+Unter **Einstellungen → Bewegungsachsen → Links / rechts** kann **Seitlich neigen / schwenken** gewählt werden: die linke oder rechte Handykante absenken. Hoch/runter bleibt auf Vor-/Zurückneigen; beide Richtungen lassen sich unabhängig zuordnen und umkehren. Die Zuordnung wird gespeichert und folgt der Bildschirmausrichtung. Die bisherige Bedienung bleibt beim Update voreingestellt.
 
 ## Bei ausgeschaltetem S10-Display
 
@@ -77,9 +80,9 @@ Ein Sendeabschluss bestätigt die Übergabe an Android-Bluetooth bzw. Windows Se
 
 ## Schutz gegen hängende Tasten
 
-Tastaturberichte werden in einer eigenen seriellen Arbeitswarteschlange verschickt; die Oberfläche steuert deren Zeitabstand nicht mehr. Zu jedem Tastendruck gehört eine zeitnahe Freigabe. Eine unabhängige Zeitüberwachung stoppt festhängende Aufrufe und veranlasst Tastenfreigabe und Trennung einer nicht reagierenden Sitzung. Auch Mausberichte laufen außerhalb der Oberfläche und werden zusammengefasst.
+Tastaturberichte werden in einer eigenen seriellen Arbeitswarteschlange verschickt; die Oberfläche steuert deren Zeitabstand nicht mehr. Tastendruck und Freigabe erhalten jeweils 40 ms Zeit. Auch die letzte Freigabe wird abgewartet, bevor die nächste Sendung beginnen kann. Reguläre Tastenfreigaben teilen dieselbe Warteschlange; Mausaktionen schicken keine unabhängigen Tastaturfreigaben mehr. Eine unabhängige Zeitüberwachung stoppt festhängende Aufrufe und veranlasst Tastenfreigabe und Trennung einer nicht reagierenden Sitzung. Auch Mausberichte laufen außerhalb der Oberfläche und werden zusammengefasst.
 
-Die ursprüngliche lange Buchstabenfolge vom ersten Gerätetest wird durch diesen Ablauf gezielt adressiert. Ob die konkrete Störung auf dem S10/PC vollständig beseitigt ist, muss der reale Test zeigen.
+Die Übertragung ist bewusst langsamer, damit kurze Tastenzustände nicht verloren gehen. Automatische Tests simulieren wiederholtes Senden mit langsamerer Zustandsverarbeitung. Ob die Zeichenverluste am S10/PC vollständig beseitigt sind, muss der reale Test zeigen.
 
 ## Datenschutz und Diagnose
 
@@ -105,7 +108,7 @@ Windows-Helfer auf Windows mit vorhandenem .NET Framework und Python bauen:
 
 Auf Linux sind zusätzlich ein .NET-SDK sowie .NET-Framework-4.8-Referenzassemblies erforderlich; Optionen **--dotnet-root** und **--references** verwenden. Die unveränderte Bluetooth-Bibliothek liegt mit fester Prüfsumme unter windows/vendor.
 
-GitHub Actions prüft Android-Kernlogik und baut die aktuelle APK. Die Nutzdaten der signierten Release-APK werden mit dem frischen Build verglichen. Eine Windows-Prüfung kompiliert den Helfer und führt Unicode-Selbsttests sowohl mit dem neuen als auch dem tatsächlich veröffentlichten Helfer aus. Nach erfolgreichen Prüfungen entsteht ein Testrelease mit APK und optionalem Windows-ZIP.
+GitHub Actions prüft Android-Kernlogik und baut die aktuelle APK. Die Nutzdaten der signierten Release-APK werden mit dem frischen Build verglichen. Eine Windows-Prüfung kompiliert den Helfer und führt Unicode-Selbsttests sowohl mit dem neuen als auch dem tatsächlich veröffentlichten Helfer aus. Nach erfolgreichen Prüfungen wird die signierte APK mit dem optionalen Windows-ZIP als regulärer Release veröffentlicht und als „Latest“ markiert.
 
 ## Technische Grundlagen
 
