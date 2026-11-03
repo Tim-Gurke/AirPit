@@ -1,88 +1,117 @@
-# AirPit 0.0.1
+# AirPit 0.0.2
 
-Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**. Entwickelt für Tims Galaxy S10, mit App-Kopf, Versionsanzeige und Bedienung im Stil der Pit-Apps.
+Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[APK herunterladen](https://github.com/Tim-Gurke/AirPit/raw/refs/heads/main/releases/AirPit-v0.0.1.apk)** · [Testrelease](https://github.com/Tim-Gurke/AirPit/releases/tag/v0.0.1)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.2/AirPit-v0.0.2.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.2/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.2.md)
 
-Erste Testversion. APK-Bau und die Kernlogik werden geprüft. Die echte HID-Kopplung, Latenz und Sensorabstimmung müssen noch am S10 und Windows-PC getestet werden. Die Android-ROM muss Bluetooth-HID als Eingabegerät unterstützen. Eine Android-Versionsnummer allein garantiert diese ROM-Funktion nicht.
+## Mit Windows verbinden
 
-## Einrichtung
+1. APK auf dem S10 installieren; 0.0.2 lässt sich mit derselben Signierung über 0.0.1 installieren.
+2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
+3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
+4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
+5. Den PC einmal in AirPit auswählen. Danach verbindet die Taste oben den zuletzt verwendeten PC erneut.
 
-1. APK auf dem S10 installieren und AirPit öffnen.
-2. Unter **Verbindung → Bluetooth erlauben/starten** die Berechtigung „Geräte in der Nähe“ freigeben.
-3. **Für PC sichtbar · 2 Minuten** antippen und die Android-Nachfrage bestätigen.
-4. In Windows unter **Einstellungen → Bluetooth und Geräte → Gerät hinzufügen → Bluetooth** das Handy auswählen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen. Die Kopplung auf beiden Geräten bestätigen.
-5. AirPit geöffnet lassen. Falls nötig den bereits gekoppelten PC in AirPit unter **Gekoppelte Geräte** antippen.
-6. Für die Tastatur in Windows **Deutsch (Deutschland)** einstellen und die Feststelltaste ausschalten. Im Zieleingabefeld am PC den Cursor platzieren.
+Eine bestehende Bluetooth-Kopplung bleibt gespeichert. Der sichtbare Android-Dienst hält die Verbindung auch beim Wechsel in eine andere App. Die Steuerung pausiert dabei und lässt Tasten los. Über die Benachrichtigung lässt sich die Steuerung stoppen oder der Dienst beenden.
 
-Am PC ist keine Zusatzsoftware nötig. Das Handy meldet eine normale HID-Maus mit Tastatur an. Windows muss Bluetooth-Mäuse und -Tastaturen unterstützen.
+Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen. Keine Root-Rechte. Die echte Bluetooth-Verbindung, Latenz und das Verhalten der S10-ROM benötigen weiterhin einen Gerätetest.
 
-## Bedienung
+## Maus und Bedienfläche
 
-| Bereich | Funktion |
+| Funktion | Bedienung |
 |---|---|
-| Maus | Air-Maus ein-/ausschalten; Handy leicht drehen, um den Mauszeiger zu bewegen |
-| Kalibrieren | Etwa eine Sekunde stillhalten; korrigiert den Ruhefehler des Gyroskops |
-| Umgreifen | Gedrückt halten, Handy neu ausrichten, loslassen |
-| Touchpad | Mit einem Finger bewegen; tippen für Linksklick; zwei Finger zum Scrollen oder kurz für Rechtsklick |
-| Maustasten | Links und rechts auch gedrückt halten; „Ziehen“ hält die linke Taste bis zum nächsten Antippen |
-| Scrollen | Pfeiltasten antippen oder gedrückt halten |
-| Tastatur | Mit Gboard tippen, korrigieren oder diktieren; anschließend **Text an PC senden** |
-| Direkttasten | Enter, Tab, Esc, Löschen, Pfeile, Alles markieren, Kopieren, Einfügen, Rückgängig, Alt+Tab, Desktop |
-| Einstellungen | Empfindlichkeit, Glättung, Zitterfilter und Richtungsumkehr |
+| Air-Maus | Handy leicht drehen; über die Air-Maus-Kachel ein-/ausschalten |
+| Kalibrieren | Etwa eine Sekunde stillhalten |
+| Umgreifen | Taste gedrückt halten, Handy neu ausrichten, loslassen |
+| Touchpad | Ein Finger bewegt; tippen klickt links; zwei Finger scrollen oder tippen kurz für Rechtsklick |
+| Maustasten | Gedrückt halten oder mit „Ziehen“ die linke Taste einrasten lassen |
+| Scrollen | Mit zwei Fingern oder den Scrolltasten, auch länger gedrückt |
+| Vollbild | Große Touchpad-Fläche mit Maus-/Scrolltasten und Verbindungstaste |
+| Anordnen | Bearbeitungsmodus öffnen; den Griff gedrückt halten und die Kachel an die gewünschte Stelle ziehen |
+| Größe | Im Bearbeitungsmodus über „⋮“ Breite und Höhe einstellen |
+| Kacheln | Im Bearbeitungsmodus aus-/einblenden |
+| Vorlagen | Großes Touchpad, Air-Maus, Kompakt, Maus und Text oder Standard |
 
-Die Gboard-Texteingabe wird erst mit **Text an PC senden** übertragen. Dadurch werden Wortkorrekturen und Spracheingabe zuerst auf dem Handy fertiggestellt. Gboard muss als Bildschirmtastatur eingerichtet sein. Ob die Spracherkennung offline arbeitet, hängt von Gboard und seinen installierten Sprachdaten ab.
+Hoch- und Querformat besitzen eigene gespeicherte Layouts. Touchpad, Air-Steuerung, Maustasten, Scrollen, Texteingabe und Direkttasten lassen sich gemeinsam auf der Bedienseite verwenden. Die Touchpad-Höhe wird unabhängig von der Darstellungsgröße eingestellt.
 
-Die Zwischenablage-Tasten arbeiten mit der **Windows-Zwischenablage**. Es wird keine gemeinsame Handy-/PC-Zwischenablage eingerichtet.
+Unter **Einstellungen**: Darstellungsgröße **50–150 %**, Rückstellung auf 100 %, Empfindlichkeit, Glättung, Zitterfilter, Richtungsumkehr und ein-/ausblendbare Erklärungen.
 
-## Oberfläche
+## Bei ausgeschaltetem S10-Display
 
-- Kompakter Kopf mit eigenem Mauszeiger-Symbol, AirPit und Versionsnummer.
-- Dunkles Design in Dunkelblau/Mint wie WohnPit; helles Design in Weiß/Blau.
-- Drei Bereiche: Maus, Tastatur, Verbindung. Hell/Dunkel und Einstellungen bleiben im Kopf erreichbar.
-- Verbindung und Air-Maus zeigen ihren tatsächlichen Zustand. Nicht verfügbare Aktionen sind ausgegraut.
-- Zweizeilige Statustexte mit fester Höhe; vollständiger Status für Bildschirmlesegeräte.
-- Copyright **© Tim Weißbach · AirPit**; Android-Symbol einschließlich einfarbiger Variante.
+Unter **Einstellungen → Bei Display aus weitersteuern** ausdrücklich aktivieren und eine Air-Maus-Sitzung starten. Die Android-Benachrichtigung mit Stopptaste muss erlaubt sein. Die Bewegungssensoren arbeiten dann bei ausgeschaltetem Bildschirm weiter; eine partielle CPU-Wachhaltung ist auf diesen aktiven Modus beschränkt.
 
-## Grenzen der ersten Version
+Beim normalen App-Wechsel bleibt Bluetooth verbunden, die Bedienung wird pausiert. Bei Display aus kann nur eine zuvor bewusst gestartete Air-Maus weiterlaufen. Über die Benachrichtigung **Steuerung stoppen** bzw. **Beenden** wählen.
 
-- Android 9 oder neuer. Ziel-SDK 35; keine Root-Rechte.
-- Die ROM muss das klassische **Bluetooth-HID-Device-Profil** anbieten. Ist es gesperrt oder entfernt, erscheint eine Erklärung. Touchpad und Tastatur verwenden dasselbe Profil.
-- AirPit bleibt während der Bedienung geöffnet und hält bei einer Verbindung den Bildschirm an. Beim App-Wechsel oder Sperren stoppt die Air-Maus, die Tastatureingabe wird abgebrochen und alle Tasten werden losgelassen. Nach der Rückkehr gegebenenfalls den PC erneut verbinden.
-- Ohne Gyroskop bleiben Touchpad und Tastatur nutzbar.
-- Deutsches Windows-Layout: Buchstaben, Ziffern, Umlaute, ß, Euro und die üblichen Satz-/Sonderzeichen. Einige Akzentzeichen werden unterstützt. Typografische Anführungszeichen werden zu geraden Anführungszeichen, Gedankenstriche zu Bindestrichen und „…“ zu drei Punkten.
-- Emojis und beliebige Unicode-Zeichen werden nicht übertragen. Ein Text mit einem nicht unterstützten Zeichen wird **vor dem ersten Tastendruck vollständig abgewiesen**.
-- Ein Bluetooth-Sendeerfolg bestätigt die Übergabe an den Android-Bluetooth-Dienst, nicht den Inhalt eines Windows-Eingabefelds. Bei Abbruch die teilweise eingegebene Zeichenfolge am PC prüfen.
-- Noch keine Unterstützung für Bildschirmübertragung, eine PC-Zwischenablage-App, mehrere gleichzeitige PCs oder einen Betrieb bei ausgeschaltetem Display.
+## Gboard und Text
 
-## Datenschutz
+Mit der gewohnten Bildschirmtastatur tippen, korrigieren oder diktieren und anschließend **Text an PC senden**. Die Darstellung und Spracheingabe bleiben Aufgaben von Gboard.
 
-AirPit nutzt weder Internet noch WLAN und benötigt kein Konto. Bluetooth-Freigaben werden über Android angefragt; eine neue Kopplung wird im System bestätigt. Kein Standortzugriff, keine Kontakte, keine Cloud und keine gespeicherten Eingabeprotokolle. Entwürfe bleiben während der laufenden App-Sitzung erhalten; dauerhaft gespeichert werden nur Bedienungseinstellungen.
+- Nach einer vollständig abgearbeiteten Sendung wird der zugehörige Entwurf geleert.
+- Bei Fehler oder Abbruch bleibt der Text erhalten.
+- **Text zurückholen** stellt den zuletzt erfolgreich gesendeten Text aus dem Arbeitsspeicher wieder her.
+- Neu geschriebener Text wird nicht durch den Abschluss einer früheren Sendung gelöscht.
+- Keine automatische Wiederholung nach einem Verbindungsabbruch.
+- Höchstens 1.000 Unicode-Codepunkte pro Sendung.
+- Direkttasten für Enter, Esc, Tab, Löschen, Pfeile, Markieren, Kopieren, Einfügen, Rückgängig, Alt+Tab und Desktop.
+- Kopieren/Einfügen verwendet die Zwischenablage des PCs.
 
-Gboard ist eine eigenständige App mit eigenen Einstellungen und Datenverarbeitung.
+Der normale HID-Tastaturmodus unterstützt **Deutsch (Deutschland)**; Feststelltaste ausschalten. Umlaute, ß, Euro, übliche Satzzeichen und einige Akzente werden unterstützt. Typografische Anführungszeichen werden zu geraden Anführungszeichen, Gedankenstriche zu Bindestrichen und „…“ zu drei Punkten.
+
+## Emojis und beliebiger Unicode
+
+**Ohne Windows-Helfer:** Die Taste **Windows-Emojis** öffnet die native Windows-Auswahl über Win+Punkt. Auswahl mit der Maus am PC vornehmen.
+
+**Direkt aus Gboard:** Den optionalen Windows-Helfer nutzen:
+
+1. **AirPit-Unicode-Windows.zip** am PC vollständig entpacken.
+2. **AirPit-Unicode.exe** starten; DLL und Konfigurationsdatei daneben lassen.
+3. Am Handy unter **Verbindung → Emoji-Erweiterung verbinden** den sechsstelligen Code aus dem Helfer eingeben.
+4. Am PC das gewünschte Textfeld anklicken.
+5. In Gboard Text und Emojis schreiben und senden.
+
+Die Unicode-Erweiterung benutzt eine zusätzliche lokale Bluetooth-Verbindung zum selben PC. Sie benötigt kein WLAN, keine Installation und keine Administratorrechte. Der Code gilt für die laufende Helfersitzung. Es wird nichts automatisch in die Windows-Zwischenablage geschrieben.
+
+Hauttöne, Flaggen und zusammengesetzte Familien-Emojis bleiben als Unicode-Sequenzen erhalten. Das Zielprogramm und dessen Schriften bestimmen die Darstellung. Windows kann Eingaben in Programme mit Administratorrechten blockieren. Der Helfer benötigt .NET Framework 4.8 und Windows-Bluetooth.
+
+Ein Sendeabschluss bestätigt die Übergabe an Android-Bluetooth bzw. Windows SendInput, nicht den Inhalt jedes beliebigen Zieleingabefelds. Bei Abbruch die bereits eingegebene Zeichenfolge am PC prüfen.
+
+## Schutz gegen hängende Tasten
+
+Tastaturberichte werden in einer eigenen seriellen Arbeitswarteschlange verschickt; die Oberfläche steuert deren Zeitabstand nicht mehr. Zu jedem Tastendruck gehört eine zeitnahe Freigabe. Eine unabhängige Zeitüberwachung stoppt festhängende Aufrufe und veranlasst Tastenfreigabe und Trennung einer nicht reagierenden Sitzung. Auch Mausberichte laufen außerhalb der Oberfläche und werden zusammengefasst.
+
+Die ursprüngliche lange Buchstabenfolge vom ersten Gerätetest wird durch diesen Ablauf gezielt adressiert. Ob die konkrete Störung auf dem S10/PC vollständig beseitigt ist, muss der reale Test zeigen.
+
+## Datenschutz und Diagnose
+
+AirPit benötigt kein Konto, Internet oder WLAN. Es werden keine Texteingabeprotokolle angelegt. Der letzte erfolgreiche Text bleibt zum Wiederherstellen nur im Arbeitsspeicher. Dauerhaft gespeichert werden Bedienungseinstellungen, Layouts und der zuletzt verwendete Bluetooth-PC.
+
+Die begrenzte Diagnose zeigt Betriebsereignisse, Anzahl gesendeter Zeichen und Fehler, keine Textinhalte oder Kopplungscodes. Unter Einstellungen ansehen und bei Bedarf kopieren. Gboard bleibt eine eigenständige App mit eigenen Einstellungen und eigener Datenverarbeitung.
 
 ## Bauen und prüfen
 
-Öffnen als normales Android-Projekt in Android Studio (JDK 17, SDK 35). Ein Gradle-Wrapper ist nicht erforderlich, wenn Android Studio eine kompatible lokale Gradle-Version verwendet (AGP 8.9.2, Gradle 8.11.1).
+Android: JDK 17, SDK-Plattform und Build Tools 35.
 
-Für einen schlanken Build ohne Gradle-Abhängigkeiten:
+    export ANDROID_HOME=/path/to/android-sdk
+    export JAVA_HOME=/path/to/jdk-17
+    export PATH="$JAVA_HOME/bin:$PATH"
+    python3 tools/check-core.py
+    python3 tools/build.py
 
-```bash
-export ANDROID_HOME=/path/to/android-sdk
-export JAVA_HOME=/path/to/jdk-17
-export PATH="$JAVA_HOME/bin:$PATH"
-python3 tools/check-core.py
-python3 tools/build.py
-```
+Ohne Signiermaterial entsteht eine nicht installierbare ausgerichtete unsigned.apk. Für eine installierbare APK **AIRPIT_KEYSTORE**, **AIRPIT_STORE_PASSWORD** und optional **AIRPIT_KEY_ALIAS** (Standard airpit) setzen. Schlüssel gehören nicht ins Repository.
 
-Benötigte SDK-Pakete: `platforms;android-35` und `build-tools;35.0.0`. Ohne Signierschlüssel entsteht eine **nicht installierbare**, ausgerichtete `-unsigned.apk`. Für eine installierbare APK sind `AIRPIT_KEYSTORE`, `AIRPIT_STORE_PASSWORD` und optional `AIRPIT_KEY_ALIAS` (Standard: `airpit`) zu setzen. Signiermaterial gehört nicht ins Repository.
+Windows-Helfer auf Windows mit vorhandenem .NET Framework und Python bauen:
 
-GitHub Actions baut den Quellstand und prüft die Kernlogik. Das öffentliche Repository enthält zusätzlich die unverändert signierte APK mit Prüfsumme für den ersten Gerätetest. `tools/verify-release.py` vergleicht die Release-Prüfsumme, den Quellstand und die APK-Nutzdaten mit dem neu gebauten Stand.
+    python tools/build-windows.py --self-test
 
-## Technische Grundlage
+Auf Linux sind zusätzlich ein .NET-SDK sowie .NET-Framework-4.8-Referenzassemblies erforderlich; Optionen **--dotnet-root** und **--references** verwenden. Die unveränderte Bluetooth-Bibliothek liegt mit fester Prüfsumme unter windows/vendor.
 
-- [Android BluetoothHidDevice](https://developer.android.com/reference/android/bluetooth/BluetoothHidDevice): HID-Anmeldung, Maus-/Tastaturberichte, Vordergrund-Anforderung.
-- [Android Bewegungssensoren](https://developer.android.com/develop/sensors-and-location/sensors/sensors_motion): Gyroskop und Schwerkraftbezug.
-- [Microsoft HID-Tastaturen und -Mäuse](https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/keyboard-and-mouse-hid-client-drivers): Windows-Standardtreiber.
+GitHub Actions prüft Android-Kernlogik und baut die aktuelle APK. Die Nutzdaten der signierten Release-APK werden mit dem frischen Build verglichen. Eine Windows-Prüfung kompiliert den Helfer und führt Unicode-Selbsttests sowohl mit dem neuen als auch dem tatsächlich veröffentlichten Helfer aus. Nach erfolgreichen Prüfungen entsteht ein Testrelease mit APK und optionalem Windows-ZIP.
+
+## Technische Grundlagen
+
+- [Android BluetoothHidDevice](https://developer.android.com/reference/android/bluetooth/BluetoothHidDevice)
+- [Android connected-device foreground services](https://developer.android.com/develop/background-work/services/fgs/service-types)
+- [Microsoft Unicode keyboard input](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-keybdinput)
+- [32feet.NET](https://github.com/inthehand/32feet), nur für den optionalen Windows-Helfer; MIT-Lizenz.
 
 © 2026 Tim Weißbach · MIT-Lizenz.

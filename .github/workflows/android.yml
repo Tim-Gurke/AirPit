@@ -1,4 +1,4 @@
-name: Android build and first test release
+name: Android and Windows verification
 
 on:
   push:
@@ -24,30 +24,57 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - name: Install fixed SDK tools
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
-      - name: HID, German keyboard and motion checks
+      - name: HID, motion, timeout, cancellation and layout checks
         run: python3 tools/check-core.py
-      - name: Build current source
+      - name: Build current Android source
         run: python3 tools/build.py
-      - name: Verify signed release and fresh payload
-        run: python3 tools/verify-release.py --compare-unsigned build/AirPit-v0.0.1-unsigned.apk
-      - name: Verify Android signature
-        run: "$ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose releases/AirPit-v0.0.1.apk"
+      - name: Compare release with current source and check signature
+        run: python3 tools/verify-release.py --compare-unsigned auto --android-signature
+
+  windows-helper:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile helper and test Unicode input planning
+        run: python tools/build-windows.py --self-test
+      - name: Test the actual released Windows helper
+        shell: python
+        run: |
+          import pathlib, subprocess, zipfile
+          root = pathlib.Path.cwd()
+          out = root / "build" / "released-windows-helper"
+          out.mkdir(parents=True, exist_ok=True)
+          with zipfile.ZipFile(root / "releases" / "AirPit-Unicode-Windows.zip") as archive:
+              archive.extractall(out)
+          subprocess.run([str(out / "AirPit-Unicode.exe"), "--self-test"], cwd=out, check=True)
+          print((out / "AirPit-Unicode-self-test.txt").read_text())
 
   release:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    needs: verify
+    needs: [verify, windows-helper]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Publish signed first test version
+      - name: Read release metadata
+        id: meta
+        shell: python
+        run: |
+          import json, os
+          info = json.load(open("releases/current.json"))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("version=" + info["version"] + "\n")
+              output.write("apk=" + info["apk"] + "\n")
+      - name: Publish verified signed test release
         env:
           GH_TOKEN: ${{ github.token }}
+          AIRPIT_VERSION: ${{ steps.meta.outputs.version }}
+          AIRPIT_APK: ${{ steps.meta.outputs.apk }}
         run: |
-          if ! gh release view v0.0.1 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create v0.0.1 releases/AirPit-v0.0.1.apk \
+          if ! gh release view "v$AIRPIT_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "v$AIRPIT_VERSION" "$AIRPIT_APK" releases/AirPit-Unicode-Windows.zip \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title 'AirPit 0.0.1 · erster Gerätetest' --prerelease \
-              --notes-file docs/releases/0.0.1.md
+              --title "AirPit $AIRPIT_VERSION · freie Bedienfläche und Unicode" --prerelease \
+              --notes-file "docs/releases/$AIRPIT_VERSION.md"
           fi

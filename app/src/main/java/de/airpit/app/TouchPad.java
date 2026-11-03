@@ -19,6 +19,7 @@ public final class TouchPad extends View {
     private float x,y,startX,startY,focusY,maxDistance;
     private double remainderX,remainderY,remainderWheel;
     private long startTime;
+    public float uiScale=1;
     public TouchPad(Context context,Sink sink,int accent,int muted) {
         super(context);this.sink=sink;this.accent=accent;this.muted=muted;
         density=getResources().getDisplayMetrics().density;
@@ -30,9 +31,9 @@ public final class TouchPad extends View {
         paint.setColor(muted);paint.setAlpha(35);
         for(float px=18*density;px<getWidth();px+=22*density)for(float py=16*density;py<getHeight();py+=22*density)c.drawCircle(px,py,density,paint);
         paint.setAlpha(255);paint.setTextAlign(Paint.Align.CENTER);paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));
-        paint.setTextSize(14*density);paint.setColor(isEnabled()?muted:0xff77828e);
+        paint.setTextSize(14*density*uiScale);paint.setColor(isEnabled()?muted:0xff77828e);
         c.drawText("TOUCHPAD",getWidth()/2f,getHeight()/2f-3*density,paint);
-        paint.setTextSize(11*density);paint.setTypeface(android.graphics.Typeface.create("sans-serif",0));
+        paint.setTextSize(11*density*uiScale);paint.setTypeface(android.graphics.Typeface.create("sans-serif",0));
         c.drawText(isEnabled()?"Ein Finger bewegt · zwei scrollen":"Zuerst mit dem PC verbinden",getWidth()/2f,getHeight()/2f+20*density,paint);
         if(touched&&isEnabled()) {
             paint.setColor(accent);paint.setAlpha(40);c.drawCircle(x,y,27*density,paint);

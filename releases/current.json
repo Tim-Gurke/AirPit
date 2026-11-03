@@ -1,9 +1,16 @@
 {
-  "version": "0.0.1",
-  "versionCode": 1,
-  "apk": "releases/AirPit-v0.0.1.apk",
-  "sha256": "e628bbccb748ce0d2d924ee703020c8447cae172421cdc3639c26f5c6881921c",
-  "source_sha256": "471690bb1c8b3f188869352e71513c20ee13912abdf568854354c03a5464231a",
+  "version": "0.0.2",
+  "versionCode": 2,
+  "apk": "releases/AirPit-v0.0.2.apk",
+  "sha256": "6aeb184c0d6a43db6f0543e69d808789e4bdb2cc28ae24c54d4a2e53d03b5ff4",
+  "source_sha256": "c7d911f86a07ce5ade76166f24a3ad259f5fc2783578326717914fa6dc28c674",
+  "assets": [
+    {
+      "path": "releases/AirPit-Unicode-Windows.zip",
+      "sha256": "2c98e21d038a8c1ad7e2b7ec8cfda22d307eae895e46f9acc27bae2fa285bd10"
+    }
+  ],
   "minimumAndroid": "9",
-  "hardwareTest": "S10 and Windows Bluetooth test pending"
+  "verification": "118 HID/keyboard/motion checks + 41 transport, cancellation, timeout, draft and layout checks; Windows and UI checks recorded by CI and local QA",
+  "hardwareTest": "S10/Windows Bluetooth, background and screen-off behavior still require physical testing"
 }

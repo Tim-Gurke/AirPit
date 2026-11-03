@@ -21,6 +21,7 @@ public final class AirMotion implements SensorEventListener {
     private boolean running,calibrating,holding;
     public double gain=1350,smoothing=0.035,deadzone=0.012;
     public boolean invertX,invertY;
+    public int rotation;
 
     public AirMotion(Context context,Sink sink) {
         manager=(SensorManager)context.getSystemService(Context.SENSOR_SERVICE);this.sink=sink;
@@ -65,7 +66,8 @@ public final class AirMotion implements SensorEventListener {
         double norm=Math.sqrt(up[0]*up[0]+up[1]*up[1]+up[2]*up[2]);
         double yaw=norm<0.2?-(e.values[2]-bias[2]):
             -((e.values[0]-bias[0])*up[0]+(e.values[1]-bias[1])*up[1]+(e.values[2]-bias[2])*up[2])/norm;
-        int[] move=filter.step(yaw,-(e.values[0]-bias[0]),(e.timestamp-last)/1e9,gain,smoothing,deadzone,invertX,invertY);
+        double pitch=rotation==1?-(e.values[1]-bias[1]):rotation==3?(e.values[1]-bias[1]):rotation==2?(e.values[0]-bias[0]):-(e.values[0]-bias[0]);
+        int[] move=filter.step(yaw,pitch,(e.timestamp-last)/1e9,gain,smoothing,deadzone,invertX,invertY);
         if(move[0]!=0||move[1]!=0)sink.move(move[0],move[1]);
     }
     @Override public void onAccuracyChanged(Sensor sensor,int accuracy) {}
