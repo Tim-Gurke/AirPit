@@ -66,15 +66,19 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("version=" + info["version"] + "\n")
               output.write("apk=" + info["apk"] + "\n")
-      - name: Publish verified signed test release
+      - name: Publish verified signed release
         env:
           GH_TOKEN: ${{ github.token }}
           AIRPIT_VERSION: ${{ steps.meta.outputs.version }}
           AIRPIT_APK: ${{ steps.meta.outputs.apk }}
         run: |
-          if ! gh release view "v$AIRPIT_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          if gh release view "v$AIRPIT_VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "v$AIRPIT_VERSION" --repo "$GITHUB_REPOSITORY" \
+              --draft=false --prerelease=false --latest
+          else
             gh release create "v$AIRPIT_VERSION" "$AIRPIT_APK" releases/AirPit-Unicode-Windows.zip \
               --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-              --title "AirPit $AIRPIT_VERSION · freie Bedienfläche und Unicode" --prerelease \
+              --title "AirPit $AIRPIT_VERSION · freie Bedienfläche und Unicode" --latest \
               --notes-file "docs/releases/$AIRPIT_VERSION.md"
           fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "v$AIRPIT_VERSION"
