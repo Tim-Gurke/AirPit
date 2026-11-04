@@ -5,7 +5,7 @@ import java.util.*;
 
 /** Individual control rectangles. Coordinates are density-independent, never text drafts. */
 public final class FreeLayout {
-    public static final int GAP=3,MAX_Y=16000;
+    public static final int GAP=3,MAX_Y=16000,GRID=4;
     public static final class Item {
         public final String id;
         public int x,y,width,height;
@@ -17,11 +17,22 @@ public final class FreeLayout {
     public int width,scale;
     public FreeLayout(int width,int scale){this.width=Math.max(80,width);this.scale=Math.max(50,Math.min(150,scale));}
     public FreeLayout copy(){FreeLayout r=new FreeLayout(width,scale);for(Item i:items.values())r.items.put(i.id,i.copy());return r;}
+    /** Keep the model and existing Item identities shared by the editing transaction. */
+    public void applyFrom(FreeLayout source){
+        LinkedHashMap<String,Item> next=new LinkedHashMap<>();
+        for(Item value:source.items.values()){
+            Item target=items.get(value.id);if(target==null)target=value.copy();
+            else{target.x=value.x;target.y=value.y;target.width=value.width;target.height=value.height;target.visible=value.visible;}
+            next.put(value.id,target);
+        }
+        width=source.width;scale=source.scale;items.clear();items.putAll(next);
+    }
     public Item item(String id){return items.get(id);}
     public int bottom(){int b=0;for(Item i:items.values())if(i.visible)b=Math.max(b,i.y+i.height);return b;}
     private static boolean intersects(Item a,Item b){return a.x<b.x+b.width+GAP&&a.x+a.width+GAP>b.x&&a.y<b.y+b.height+GAP&&a.y+a.height+GAP>b.y;}
+    private boolean inside(Item a){return a.width>=1&&a.width<=width&&a.height>=1&&a.height<=2000&&a.x>=0&&a.y>=0&&(long)a.x+a.width<=width&&(long)a.y+a.height<=MAX_Y;}
     private boolean canPlace(Item a,Collection<Item> others){
-        if(a.width<1||a.width>width||a.height<1||a.height>2000||a.x<0||a.y<0||(long)a.x+a.width>width||(long)a.y+a.height>MAX_Y)return false;
+        if(!inside(a))return false;
         if(!a.visible)return true;
         for(Item b:others)if(b.visible&&!a.id.equals(b.id)&&intersects(a,b))return false;
         return true;
@@ -31,6 +42,36 @@ public final class FreeLayout {
         if(!canPlace(id,x,y,w,h))return false;
         Item r=item(id);r.x=x;r.y=y;r.width=w;r.height=h;return true;
     }
+    public static int snap(int value){return (int)Math.min(Integer.MAX_VALUE/GRID*(long)GRID,((Math.max(0L,value)+GRID/2)/GRID)*GRID);}
+    public static int snapBounded(int value,int maximum){return Math.min(snap(value),Math.max(0,maximum/GRID*GRID));}
+    private static int nextGrid(int value){return (int)(((long)value+GRID-1)/GRID*GRID);}
+    /** Preview from an unchanged drag baseline: fix the inserted item, push conflicts down. */
+    public FreeLayout insertionPreview(String id,int x,int y,int w,int h){
+        Item old=item(id);if(old==null||!old.visible)return null;
+        Item requested=new Item(id,x,y,w,h);if(!inside(requested))return null;
+        FreeLayout result=copy();Item inserted=result.item(id);
+        inserted.x=snapBounded(x,width-w);inserted.y=snapBounded(y,MAX_Y-h);inserted.width=w;inserted.height=h;
+        // A valid gap below an older, unaligned item must not snap upward into it.
+        int above=0;
+        for(Item i:result.items.values())if(i.visible&&!i.id.equals(id)&&(long)i.y+i.height+GAP<=y&&inserted.x<i.x+i.width+GAP&&inserted.x+inserted.width+GAP>i.x)above=Math.max(above,i.y+i.height+GAP);
+        inserted.y=Math.max(inserted.y,nextGrid(above));if(!result.inside(inserted))return null;
+        List<Item> rest=new ArrayList<>();
+        for(Item i:result.items.values())if(i.visible&&!i.id.equals(id))rest.add(i);
+        // Original vertical order is stable; only affected items and their successors move.
+        rest.sort(Comparator.comparingInt((Item i)->i.y).thenComparingInt(i->i.x));
+        List<Item> placed=new ArrayList<>();placed.add(inserted);
+        for(Item i:rest){
+            boolean conflict;
+            do{
+                int below=i.y;conflict=false;
+                for(Item p:placed)if(intersects(i,p)){below=Math.max(below,p.y+p.height+GAP);conflict=true;}
+                if(conflict){i.y=nextGrid(below);if(!result.inside(i))return null;}
+            }while(conflict);
+            placed.add(i);
+        }
+        return result.valid()?result:null;
+    }
+    public boolean insert(String id,int x,int y,int w,int h){FreeLayout next=insertionPreview(id,x,y,w,h);if(next==null)return false;applyFrom(next);return true;}
     private void fit(Item a,Collection<Item> placed){
         a.width=Math.max(1,Math.min(width,a.width));a.height=Math.max(1,Math.min(2000,a.height));
         a.x=Math.max(0,Math.min(width-a.width,a.x));a.y=Math.max(0,Math.min(MAX_Y-a.height,a.y));
@@ -46,7 +87,13 @@ public final class FreeLayout {
     }
     public void repair(){List<Item> placed=new ArrayList<>();for(Item a:items.values()){fit(a,placed);placed.add(a);}}
     public boolean valid(){for(Item a:items.values())if(!canPlace(a,items.values()))return false;return true;}
-    public boolean show(String id,boolean visible){Item a=item(id);if(a==null)return false;a.visible=visible;if(visible)fit(a,items.values());return a.visible==visible;}
+    public boolean show(String id,boolean visible){
+        Item a=item(id);if(a==null)return false;if(a.visible==visible)return true;
+        if(!visible){a.visible=false;return true;}
+        FreeLayout trial=copy();trial.item(id).visible=true;
+        FreeLayout next=trial.insertionPreview(id,a.x,a.y,a.width,a.height);
+        if(next==null)return false;applyFrom(next);return true;
+    }
     public void adapt(int nextWidth,int nextScale){
         nextWidth=Math.max(80,nextWidth);nextScale=Math.max(50,Math.min(150,nextScale));
         if(nextWidth==width&&nextScale==scale)return;

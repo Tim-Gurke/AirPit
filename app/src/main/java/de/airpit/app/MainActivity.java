@@ -219,6 +219,7 @@ public final class MainActivity extends Activity {
         });
         root.removeAllViews();editMessage=null;if(editing)editorToolbar();
         pageScroll=new ScrollView(this);pageScroll.setFillViewport(true);pageScroll.setClipToPadding(false);
+        if(editing)pageScroll.setOnScrollChangeListener((v,x,y,oldX,oldY)->board.invalidate());
         root.addView(pageScroll,new LinearLayout.LayoutParams(-1,0,1));pageScroll.addView(board,new ScrollView.LayoutParams(-1,-2));
         freeBoard=board;footer();root.requestApplyInsets();update();
     }
@@ -232,7 +233,7 @@ public final class MainActivity extends Activity {
         LinearLayout actions=row();bar.addView(actions);editorButton(actions,"Speichern & fertig",this::saveArrangement,true);editorButton(actions,"Änderungen verwerfen",this::discardArrangement,false);
         LinearLayout tools=row();bar.addView(tools);editorButton(tools,"Elemente",this::elementSelection,false);editorButton(tools,"Vorlagen",this::presets,false);
         editorButton(tools,"Seite",()->dialog().setTitle("Anordnung bearbeiten").setItems(new String[]{"Bedienung","Tastatur","Verbindung","Vollbild"},(d,which)->{saveDraft();fullscreen=which==3;if(which<3)tab=which;build();}).setNegativeButton("Zurück",null).show(),false);
-        editMessage=hint(bar,"Ziehen: verschieben · Tippen: Größe und Position");editMessage.setTextSize(11);editMessage.setMaxLines(2);editMessage.setMinLines(2);editMessage.setEllipsize(TextUtils.TruncateAt.END);
+        editMessage=hint(bar,"Feines Raster · Ziehen: einfügen · Tippen: Größe und Position");editMessage.setTextSize(11);editMessage.setMaxLines(2);editMessage.setMinLines(2);editMessage.setEllipsize(TextUtils.TruncateAt.END);
     }
     private Button editorButton(LinearLayout row,String name,Runnable action,boolean primary){Button b=rowButton(row,name,action,primary);b.setTextSize(12);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(42),1);p.setMargins(dp(2),dp(2),dp(2),0);b.setLayoutParams(p);return b;}
     private void saveArrangement(){
@@ -262,7 +263,7 @@ public final class MainActivity extends Activity {
         for(int i=0;i<ids.size();i++){names[i]=elementName(ids.get(i));checked[i]=freeBoard.layout.item(ids.get(i)).visible;}
         layoutDialog=dialog().setTitle("Sichtbare einzelne Elemente").setMultiChoiceItems(names,checked,(d,index,on)->{
             String id=ids.get(index);if(!on&&requiredElement(id)){((AlertDialog)d).getListView().setItemChecked(index,true);toast("Dieser Knopf bleibt zum Anordnen erreichbar.");return;}
-            freeBoard.layout.show(id,on);freeBoard.refresh();if(editMessage!=null)editMessage.setText("Sichtbarkeit geändert · noch nicht gespeichert.");
+            if(!freeBoard.layout.show(id,on)){((AlertDialog)d).getListView().setItemChecked(index,!on);toast("Am unteren Rand ist kein Platz für dieses Element.");return;}freeBoard.refresh();if(editMessage!=null)editMessage.setText("Sichtbarkeit geändert · noch nicht gespeichert.");
         }).setPositiveButton("Fertig",null).show();
     }
     private EditText geometryField(LinearLayout row,String title,int number){
@@ -273,7 +274,7 @@ public final class MainActivity extends Activity {
         if(!editing||freeBoard==null)return;FreeLayout.Item item=freeBoard.layout.item(id);if(item==null)return;
         LinearLayout box=column();box.setPadding(dp(12),dp(4),dp(12),dp(8));LinearLayout position=row(),size=row();box.addView(position);box.addView(size);
         EditText x=geometryField(position,"Links",item.x),y=geometryField(position,"Oben",item.y),width=geometryField(size,"Breite",item.width),height=geometryField(size,"Höhe",item.height);
-        hint(box,"Die Fläche muss frei sein. Alle Änderungen bleiben bis „Speichern & fertig“ vorläufig.");
+        hint(box,"Positionen rasten am Raster ein. Andere Elemente rücken bei Bedarf nach unten. Erst „Speichern & fertig“ übernimmt die Änderungen.");
         AlertDialog.Builder builder=dialog().setTitle(elementName(id)).setView(box).setPositiveButton("Übernehmen",null).setNegativeButton("Zurück",null);
         if(!requiredElement(id))builder.setNeutralButton("Ausblenden",(d,w)->{freeBoard.layout.show(id,false);freeBoard.refresh();});
         layoutDialog=builder.create();layoutDialog.setOnShowListener(d->layoutDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
@@ -283,8 +284,8 @@ public final class MainActivity extends Activity {
                 int minH=control==pad?80:control instanceof EditText?48:control instanceof Button||control instanceof ImageButton?Math.max(32,Math.round(40*scale)):Math.max(10,Math.round(12*scale));
                 if(control instanceof Button){android.graphics.Paint.FontMetricsInt metrics=((Button)control).getPaint().getFontMetricsInt();float density=getResources().getDisplayMetrics().density;minH=Math.max(minH,(int)Math.ceil((2*(metrics.descent-metrics.ascent)+control.getPaddingTop()+control.getPaddingBottom())/density));}
                 if((nw!=item.width||nh!=item.height)&&(nw<minW||nh<minH)){toast("Mindestens "+minW+" × "+minH+" für dieses Element.");return;}
-                if(!freeBoard.layout.place(id,nx,ny,nw,nh)){toast("Platz belegt oder außerhalb der Fläche. Bitte eine freie Position wählen.");return;}
-                freeBoard.refresh();if(editMessage!=null)editMessage.setText("Position und Größe geändert · noch nicht gespeichert.");layoutDialog.dismiss();
+                if(!freeBoard.layout.insert(id,nx,ny,nw,nh)){toast("Die Position liegt außerhalb der Fläche oder am unteren Rand ist kein Platz mehr.");return;}
+                freeBoard.refresh();if(editMessage!=null)editMessage.setText("Am Raster eingefügt · noch nicht gespeichert.");layoutDialog.dismiss();
             }catch(NumberFormatException error){toast("Bitte gültige ganze Zahlen eingeben.");}
         }));layoutDialog.show();
     }

@@ -1,9 +1,9 @@
 {
-  "version": "0.0.4",
-  "versionCode": 4,
-  "apk": "releases/AirPit-v0.0.4.apk",
-  "sha256": "96c8e031a9cd0f37d5a00a46b36bc8c1f0ccfd5b337a23664e1e565bd0884bb1",
-  "source_sha256": "256cec15a582c2174f7a94dff57b51584cb3669d22fd46e65bb465ea83c3fbf1",
+  "version": "0.0.5",
+  "versionCode": 5,
+  "apk": "releases/AirPit-v0.0.5.apk",
+  "sha256": "45ce10cd10b3146f9420aa755574dd5058f30be62b0e2884922e14da17402b34",
+  "source_sha256": "5e614681ed7f0977467454e3e57193a31be549ec385f18459dac31c32c90edb5",
   "assets": [
     {
       "path": "releases/AirPit-Unicode-Windows.zip",
@@ -11,6 +11,6 @@
     }
   ],
   "minimumAndroid": "9",
-  "verification": "146 HID/keyboard/motion checks; 426 transport checks; 2938 layout/transaction checks; Android 9 startup/editor/visual checks (full UI interaction limited by emulator system-service failure); CI source-payload and Windows-helper verification",
-  "hardwareTest": "S10/Windows Bluetooth and personal arrangements require physical testing"
+  "verification": "146 HID/keyboard/motion checks; 426 transport checks; 2938 layout/transaction checks; 23909 grid/insertion/cascade/rollback checks; CI source-payload and Windows-helper verification",
+  "hardwareTest": "S10 grid visibility, touch positioning, auto-scroll and save/discard require physical testing"
 }
