@@ -18,6 +18,8 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.*;
 import de.airpit.app.core.TileLayout;
 import de.airpit.app.core.MotionAxes;
+import de.airpit.app.core.FreeLayout;
+import de.airpit.app.core.LayoutDrafts;
 import java.util.*;
 
 public final class MainActivity extends Activity {
@@ -35,6 +37,15 @@ public final class MainActivity extends Activity {
     private final List<View> connectedViews=new ArrayList<>(),keyboardViews=new ArrayList<>();
     private final List<Button> tabs=new ArrayList<>();
     private String deviceSignature="";
+    private FreeBoard freeBoard;
+    private LayoutDrafts layoutDrafts;
+    private final Map<String,View> individualViews=new LinkedHashMap<>();
+    private final Set<View> initiallyHidden=Collections.newSetFromMap(new IdentityHashMap<View,Boolean>());
+    private TextView editMessage;
+    private int pendingPreset=-1;
+    private boolean constructing,rebuildPosted;
+    private final Runnable refreshSurface=()->{rebuildPosted=false;build();};
+
     private final AirSession.Observer observer=this::update;
     private final Runnable hidden=()->{if(!resumed)session.hidden();};
     private final Runnable heartbeat=new Runnable(){public void run(){if(resumed){hid.heartbeat();main.postDelayed(this,100);}}};
@@ -43,6 +54,7 @@ public final class MainActivity extends Activity {
         super.onCreate(state);session=AirSession.get(this);hid=session.hid;air=session.motion;prefs=session.prefs;
         dark=prefs.getBoolean("dark",true);scale=prefs.getInt("uiScale",100)/100f;
         if(state!=null){tab=state.getInt("tab",0);fullscreen=state.getBoolean("fullscreen");if(session.textDraft.value.isEmpty()&&session.textDraft.lastSent.isEmpty())session.textDraft.value=state.getString("draft","");}
+        if(state!=null&&state.getBoolean("arranging",false)){editing=true;layoutDrafts=LayoutDrafts.decode(state.getString("arrangementDrafts"));pendingPreset=state.getInt("pendingPreset",-1);}
         session.observer=observer;build();
         IntentFilter f=new IntentFilter();f.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);f.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         if(Build.VERSION.SDK_INT>=33)registerReceiver(bluetoothChanges,f,Context.RECEIVER_EXPORTED);else registerReceiver(bluetoothChanges,f);receiverRegistered=true;
@@ -52,9 +64,9 @@ public final class MainActivity extends Activity {
     @Override protected void onPause(){resumed=false;main.removeCallbacks(heartbeat);saveDraft();main.postDelayed(hidden,180);super.onPause();}
     @Override protected void onStop(){saveDraft();if(!resumed)session.hidden();if(session.observer==observer)session.observer=null;super.onStop();}
     @Override protected void onDestroy(){main.removeCallbacksAndMessages(null);if(receiverRegistered)unregisterReceiver(bluetoothChanges);if(session.observer==observer)session.observer=null;super.onDestroy();}
-    @Override protected void onSaveInstanceState(Bundle b){saveDraft();b.putInt("tab",tab);b.putBoolean("fullscreen",fullscreen);b.putString("draft",session.textDraft.value);super.onSaveInstanceState(b);}
-    @Override public void onConfigurationChanged(Configuration c){super.onConfigurationChanged(c);saveDraft();if(layout!=null)saveLayout();if(layoutDialog!=null)layoutDialog.dismiss();editing=false;air.rotation=getWindowManager().getDefaultDisplay().getRotation();build();}
-    @Override public void onBackPressed(){if(fullscreen){fullscreen=false;build();}else if(editing){editing=false;showPage();}else super.onBackPressed();}
+    @Override protected void onSaveInstanceState(Bundle b){saveDraft();b.putInt("tab",tab);b.putBoolean("fullscreen",fullscreen);b.putString("draft",session.textDraft.value);b.putBoolean("arranging",editing);if(editing&&layoutDrafts!=null)b.putString("arrangementDrafts",layoutDrafts.encode());b.putInt("pendingPreset",pendingPreset);super.onSaveInstanceState(b);}
+    @Override public void onConfigurationChanged(Configuration c){super.onConfigurationChanged(c);saveDraft();if(layoutDialog!=null)layoutDialog.dismiss();layout=null;air.rotation=getWindowManager().getDefaultDisplay().getRotation();build();}
+    @Override public void onBackPressed(){if(editing){leaveArrangement();}else if(fullscreen){fullscreen=false;build();}else super.onBackPressed();}
     private final BroadcastReceiver bluetoothChanges=new BroadcastReceiver(){public void onReceive(Context c,Intent i){
         if(BluetoothAdapter.ACTION_STATE_CHANGED.equals(i.getAction())){
             int value=i.getIntExtra(BluetoothAdapter.EXTRA_STATE,-1);
@@ -71,13 +83,14 @@ public final class MainActivity extends Activity {
     private LinearLayout row(){LinearLayout v=new LinearLayout(this);v.setGravity(Gravity.CENTER_VERTICAL);return v;}
     private GradientDrawable shape(int fill,int stroke,int radius){GradientDrawable d=new GradientDrawable();d.setColor(fill);d.setCornerRadius(u(radius));d.setStroke(dp(1),stroke);return d;}
     private TextView label(LinearLayout parent,String value,int size,int color,boolean bold){
-        TextView v=new TextView(this);v.setText(value);v.setTextColor(color);v.setTextSize(size*scale);v.setPadding(0,u(3),0,u(3));if(bold)v.setTypeface(null,Typeface.BOLD);parent.addView(v,new LinearLayout.LayoutParams(-1,-2));return v;
+        TextView v=new TextView(this);v.setTag("label."+value);v.setText(value);v.setTextColor(color);v.setTextSize(size*scale);v.setPadding(0,u(3),0,u(3));if(bold)v.setTypeface(null,Typeface.BOLD);parent.addView(v,new LinearLayout.LayoutParams(-1,-2));return v;
     }
     private TextView hint(LinearLayout parent,String value){return label(parent,value,12,muted,false);}
     private void help(LinearLayout parent,String value){if(prefs.getBoolean("help",false))hint(parent,value);}
     private AlertDialog.Builder dialog(){return new AlertDialog.Builder(new ContextThemeWrapper(this,dark?android.R.style.Theme_Material_Dialog_Alert:android.R.style.Theme_Material_Light_Dialog_Alert));}
     private Button button(LinearLayout parent,String value,Runnable action,boolean primary){
         Button b=new Button(this);b.setText(value);b.setContentDescription(value);b.setAllCaps(false);b.setTextSize(14*scale);b.setMinWidth(0);b.setMinimumWidth(0);b.setMinHeight(0);b.setMinimumHeight(0);b.setMaxLines(2);b.setEllipsize(TextUtils.TruncateAt.END);
+        b.setTag("button."+value);b.setGravity(Gravity.CENTER);b.setIncludeFontPadding(false);b.setStateListAnimator(null);b.setElevation(0);b.setTranslationZ(0);b.setOutlineProvider(ViewOutlineProvider.BACKGROUND);b.setClipToOutline(true);
         b.setPadding(u(7),u(4),u(7),u(4));style(b,primary);b.setOnClickListener(v->{v.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);action.run();update();});
         LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,Math.max(dp(32),u(47)));p.topMargin=u(5);parent.addView(b,p);return b;
     }
@@ -85,7 +98,7 @@ public final class MainActivity extends Activity {
         Button b=button(parent,value,action,primary);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,Math.max(dp(32),u(47)),1);p.setMargins(u(2),u(4),u(2),0);b.setLayoutParams(p);return b;
     }
     private ImageButton themeButton(LinearLayout parent){
-        ImageButton b=new ImageButton(this);
+        ImageButton b=new ImageButton(this);b.setTag("theme");b.setStateListAnimator(null);b.setElevation(0);b.setTranslationZ(0);
         b.setImageResource(dark?R.drawable.ic_theme_light:R.drawable.ic_theme_dark);
         b.setColorFilter(text);b.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         b.setMinimumWidth(0);b.setMinimumHeight(0);b.setPadding(u(9),u(9),u(9),u(9));
@@ -105,6 +118,7 @@ public final class MainActivity extends Activity {
         LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=u(10);parent.addView(c,p);if(title!=null)label(c,title,18,text,true);return c;
     }
     private void build(){
+        constructing=true;freeBoard=null;initiallyHidden.clear();
         saveDraft();scale=Math.max(.5f,Math.min(1.5f,prefs.getInt("uiScale",100)/100f));
         bg=dark?0xff101822:0xfff1f5f9;card=dark?0xff1a2634:0xffffffff;text=dark?0xffedf4f8:0xff172738;muted=dark?0xffa6b8c8:0xff586c80;accent=dark?0xff65dbbd:0xff0879c9;border=dark?0xff304152:0xffdbe4ed;secondary=dark?0xff283b4e:0xffe9f0f7;
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
@@ -112,77 +126,175 @@ public final class MainActivity extends Activity {
         root=column();root.setBackgroundColor(bg);
         if(Build.VERSION.SDK_INT>=30)root.setOnApplyWindowInsetsListener((v,i)->{android.graphics.Insets b=i.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout()|WindowInsets.Type.ime());v.setPadding(b.left,b.top,b.right,b.bottom);return i;});else root.setFitsSystemWindows(true);
         setContentView(root);root.requestApplyInsets();tabs.clear();resetViews();air.rotation=getWindowManager().getDefaultDisplay().getRotation();
-        if(fullscreen){buildFullscreen();update();return;}
+        if(fullscreen){buildFullscreen();update();scheduleFreeBoard();constructing=false;return;}
         LinearLayout header=row();header.setPadding(u(12),u(4),u(12),u(4));root.addView(header);
-        ImageView icon=new ImageView(this);icon.setImageResource(R.drawable.ic_airpit);icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);header.addView(icon,new LinearLayout.LayoutParams(u(43),u(43)));
+        ImageView icon=new ImageView(this);icon.setTag("brand.icon");icon.setImageResource(R.drawable.ic_airpit);icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);header.addView(icon,new LinearLayout.LayoutParams(u(43),u(43)));
         LinearLayout brand=column();LinearLayout.LayoutParams brandP=new LinearLayout.LayoutParams(0,-2,1);brandP.setMarginStart(u(4));header.addView(brand,brandP);
-        label(brand,"AirPit",23,text,true).setPadding(0,0,0,0);label(brand,"Version "+BuildConfig.VERSION_NAME,10,muted,false).setPadding(0,0,0,0);
+        label(brand,"AirPit",23,text,true).setPadding(0,0,0,0);TextView version=label(brand,"Version "+BuildConfig.VERSION_NAME,10,muted,false);version.setPadding(0,0,0,0);version.setTag("brand.version");
         themeButton(header);
         Button gear=rowButton(header,"⚙",this::settings,false);gear.setContentDescription("Einstellungen");gear.setTextSize(22*scale);LinearLayout.LayoutParams gp=new LinearLayout.LayoutParams(u(42),u(40));gp.setMarginStart(u(5));gear.setLayoutParams(gp);
         LinearLayout strip=row();strip.setPadding(u(14),0,u(14),0);root.addView(strip);
-        status=new TextView(this);status.setTextColor(muted);status.setTextSize(13*scale);status.setTypeface(null,Typeface.BOLD);status.setMaxLines(2);status.setEllipsize(TextUtils.TruncateAt.END);strip.addView(status,new LinearLayout.LayoutParams(0,-2,1));
+        status=new TextView(this);status.setTextColor(muted);status.setTextSize(13*scale);status.setTypeface(null,Typeface.BOLD);status.setMinLines(2);status.setMaxLines(2);status.setEllipsize(TextUtils.TruncateAt.END);strip.addView(status,new LinearLayout.LayoutParams(0,-2,1));
         quick=button(strip,"Verbinden",this::quickConnect,true);LinearLayout.LayoutParams qp=new LinearLayout.LayoutParams(u(112),Math.max(dp(32),u(39)));qp.setMarginStart(u(6));quick.setLayoutParams(qp);quick.setTextSize(12*scale);
         LinearLayout detail=column();detail.setPadding(u(14),0,u(14),0);root.addView(detail);
         statusDetail=hint(detail,"");statusDetail.setMinLines(2);statusDetail.setMaxLines(2);statusDetail.setEllipsize(TextUtils.TruncateAt.END);
         statusDetail.setOnClickListener(v->dialog().setTitle("Verbindungsstatus").setMessage(hid.detail()+"\n\n"+hid.unicode.status).setPositiveButton("Schließen",null).show());
         LinearLayout nav=row();nav.setPadding(u(11),0,u(11),u(5));root.addView(nav);
         String[] names={"Bedienung","Tastatur","Verbindung"};for(int i=0;i<3;i++){final int target=i;Button b=rowButton(nav,names[i],()->selectTab(target),tab==i);b.setTextSize(12*scale);tabs.add(b);}
-        body=column();root.addView(body,new LinearLayout.LayoutParams(-1,0,1));footer();showPage();
+        body=column();root.addView(body,new LinearLayout.LayoutParams(-1,0,1));footer();buildLegacyPage();scheduleFreeBoard();constructing=false;
     }
-    private void footer(){TextView f=new TextView(this);f.setText("© Tim Weißbach · AirPit");f.setTextSize(10*scale);f.setTextColor(muted);f.setGravity(Gravity.CENTER);f.setPadding(0,u(4),0,u(5));root.addView(f);}
+    private void footer(){TextView f=new TextView(this);f.setTag("footer");f.setText("© Tim Weißbach · AirPit");f.setTextSize(10*scale);f.setTextColor(muted);f.setGravity(Gravity.CENTER);f.setPadding(0,u(4),0,u(5));root.addView(f);}
     private void saveDraft(){if(input!=null)session.textDraft.value=input.getText().toString();}
     private void hideKeyboard(){((InputMethodManager)getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(root.getWindowToken(),0);}
     private void selectTab(int value){if(tab==value)return;saveDraft();hideKeyboard();tab=value;editing=false;session.dragging=false;hid.releaseMouse();if(value!=0)session.pauseAir();for(int i=0;i<tabs.size();i++)style(tabs.get(i),i==tab);showPage();}
     private void resetViews(){connectedViews.clear();keyboardViews.clear();input=null;pad=null;statusDetail=null;status=null;quick=null;airTitle=airDescription=unicodeInfo=null;airToggle=calibrate=grip=dragButton=sendButton=cancelText=restoreButton=retryButton=pairButton=disconnectButton=null;deviceList=null;}
-    private void showPage(){
+    private void showPage(){build();}
+    private void buildLegacyPage(){
         saveDraft();connectedViews.clear();keyboardViews.clear();input=null;pad=null;airTitle=airDescription=unicodeInfo=null;airToggle=calibrate=grip=dragButton=sendButton=cancelText=restoreButton=retryButton=pairButton=disconnectButton=null;deviceList=null;body.removeAllViews();
         pageScroll=new ScrollView(this);pageScroll.setFillViewport(true);body.addView(pageScroll,new LinearLayout.LayoutParams(-1,-1));
         LinearLayout page=column();page.setPadding(u(12),u(5),u(12),u(8));pageScroll.addView(page);
+        if(tab!=0){LinearLayout tools=row();page.addView(tools);rowButton(tools,"Anordnen",this::beginArrangement,false);}
         if(tab==0)dashboard(page);else if(tab==1){keyboardTile(card(page,"Mit Gboard schreiben"));keysTile(card(page,"Direkttasten"));}else connectionPage(page);update();
     }
     private void dashboard(LinearLayout page){
         if(layout==null||!loadedLayoutKey.equals(layoutKey())){loadedLayoutKey=layoutKey();layout=TileLayout.decode(prefs.getString(loadedLayoutKey,null),landscape());}
-        LinearLayout tools=row();page.addView(tools);rowButton(tools,editing?"Fertig":"Anordnen",()->{saveDraft();editing=!editing;if(editing)session.pauseAll();showPage();},editing);
-        rowButton(tools,editing?"Kacheln":"Vorlagen",editing?this::tileSelection:this::presets,false);rowButton(tools,"Vollbild",()->{saveDraft();editing=false;fullscreen=true;session.pauseAir();hideKeyboard();build();},false).setEnabled(!editing);
-        if(editing)hint(page,"Am Griff ziehen · über „⋮“ Breite und Höhe einstellen.");
+        if(pendingPreset>=0)layout.preset(pendingPreset==4?0:pendingPreset,landscape());
+        LinearLayout tools=row();page.addView(tools);rowButton(tools,"Anordnen",this::beginArrangement,false);
+        rowButton(tools,"Vorlagen",this::presets,false);rowButton(tools,"Vollbild",()->{saveDraft();fullscreen=true;session.pauseAir();hideKeyboard();build();},false);
         TileBoard board=new TileBoard(this,u(8));LinearLayout.LayoutParams boardP=new LinearLayout.LayoutParams(-1,-2);boardP.topMargin=u(8);page.addView(board,boardP);
-        boolean any=false;
-        for(TileLayout.Tile spec:layout.tiles){if(!spec.visible)continue;any=true;LinearLayout c=column();c.setPadding(u(spec.id.equals("pad")?5:12),u(9),u(spec.id.equals("pad")?5:12),u(10));c.setBackground(shape(card,border,15));if(!spec.id.equals("pad"))c.setMinimumHeight(dp(spec.height));
-            if(editing){
-                LinearLayout bar=row();c.addView(bar);TextView handle=label(bar,"⠿ "+tileName(spec.id),13,accent,true);handle.setLayoutParams(new LinearLayout.LayoutParams(0,u(34),1));handle.setGravity(Gravity.CENTER_VERTICAL);handle.setContentDescription("Kachel "+tileName(spec.id)+" verschieben");handle.setOnLongClickListener(v->{v.startDragAndDrop(ClipData.newPlainText("AirPit tile",spec.id),new View.DragShadowBuilder(c),spec.id,0);return true;});
-                Button options=rowButton(bar,"⋮",()->tileOptions(spec),false);options.setContentDescription(tileName(spec.id)+" anpassen");options.setLayoutParams(new LinearLayout.LayoutParams(u(35),u(34)));
-                c.setOnDragListener((v,event)->{if(!(event.getLocalState() instanceof String))return false;switch(event.getAction()){
-                    case DragEvent.ACTION_DRAG_STARTED:return true;case DragEvent.ACTION_DRAG_ENTERED:c.setBackground(shape(card,accent,15));return true;case DragEvent.ACTION_DRAG_EXITED:case DragEvent.ACTION_DRAG_ENDED:c.setBackground(shape(card,border,15));return true;
-                    case DragEvent.ACTION_DROP:saveDraft();layout.move((String)event.getLocalState(),spec.id);saveLayout();showPage();return true;default:return true;}});
-            }
+        // Build the whole catalog, including currently hidden groups, for individual selection.
+        for(TileLayout.Tile spec:layout.tiles){
+            LinearLayout c=column();c.setPadding(u(spec.id.equals("pad")?5:12),u(9),u(spec.id.equals("pad")?5:12),u(10));
+            if(!spec.visible)initiallyHidden.add(c);
             switch(spec.id){case "pad":pad=touchpad();c.addView(pad,new LinearLayout.LayoutParams(-1,dp(spec.height)));break;case "clicks":clicksTile(c);break;case "wheel":wheelTile(c);break;case "air":airTile(c);break;case "text":label(c,"Mit Gboard schreiben",17,text,true);keyboardTile(c);break;case "keys":label(c,"Direkttasten",17,text,true);keysTile(c);break;default:break;}
             board.tile(c,landscape()?spec.span:Math.max(2,spec.span));
         }
-        if(!any)hint(page,"Keine Kachel sichtbar. Über „Anordnen → Kacheln“ wieder einblenden.");
     }
-    private String tileName(String id){switch(id){case "pad":return "Touchpad";case "clicks":return "Maustasten";case "wheel":return "Scrollen";case "air":return "Air-Maus";case "text":return "Texteingabe";default:return "Direkttasten";}}
-    private void saveLayout(){prefs.edit().putString(loadedLayoutKey.isEmpty()?layoutKey():loadedLayoutKey,layout.encode()).apply();}
-    private void presets(){layoutDialog=dialog().setTitle("Vorlage für "+(landscape()?"Querformat":"Hochformat")).setItems(new String[]{"Großes Touchpad","Air-Maus","Kompakt","Maus und Text","Standard wiederherstellen"},(d,which)->{saveDraft();layout.preset(which==4?0:which,landscape());saveLayout();showPage();}).setNegativeButton("Zurück",null).show();}
-    private void tileSelection(){String[] names=new String[layout.tiles.size()];boolean[] checked=new boolean[names.length];for(int i=0;i<names.length;i++){names[i]=tileName(layout.tiles.get(i).id);checked[i]=layout.tiles.get(i).visible;}layoutDialog=dialog().setTitle("Sichtbare Kacheln").setMultiChoiceItems(names,checked,(d,i,value)->{layout.tiles.get(i).visible=value;saveLayout();}).setPositiveButton("Fertig",(d,w)->showPage()).show();}
-    private void tileOptions(TileLayout.Tile spec){
-        LinearLayout box=column();box.setPadding(u(18),u(8),u(18),u(12));
-        TextView width=label(box,"Breite",14,text,true);LinearLayout choices=row();box.addView(choices);
-        if(landscape())rowButton(choices,"¼",()->{spec.span=1;saveLayout();showPage();},spec.span==1);
-        rowButton(choices,"½",()->{spec.span=2;saveLayout();showPage();},spec.span==2);rowButton(choices,"Ganz",()->{spec.span=4;saveLayout();showPage();},spec.span==4);
-        int low=spec.id.equals("pad")?80:0;
-        TextView size=label(box,(spec.id.equals("pad")?"Touchpad-Höhe":"Mindesthöhe")+" · "+spec.height+" dp",14,text,true);
-        SeekBar seek=new SeekBar(this);seek.setMax(720-low);seek.setProgress(spec.height-low);box.addView(seek,new LinearLayout.LayoutParams(-1,u(42)));
-        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int p,boolean user){spec.height=p+low;size.setText("Höhe · "+spec.height+" dp");}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){saveDraft();saveLayout();showPage();}});
-        hint(box,"Die Touchpad-Fläche ist unabhängig von der Darstellungsgröße. Andere Kacheln behalten ausreichend Platz für ihren Inhalt.");
-        layoutDialog=dialog().setTitle(tileName(spec.id)).setView(box).setNeutralButton("Ausblenden",(d,w)->{saveDraft();spec.visible=false;saveLayout();showPage();}).setPositiveButton("Fertig",(d,w)->{saveLayout();showPage();}).show();
+    private void presets(){
+        String[] choices=tab==0&&!fullscreen?new String[]{"Großes Touchpad","Air-Maus","Kompakt","Maus und Text","Standard wiederherstellen"}:new String[]{"Standardanordnung wiederherstellen"};
+        layoutDialog=dialog().setTitle("Vorlage für "+(landscape()?"Querformat":"Hochformat")).setItems(choices,(d,which)->{
+            if(!editing)beginArrangement();pendingPreset=choices.length==1?4:which;layout=null;build();
+        }).setNegativeButton("Zurück",null).show();
+    }
+    private String freeKey(){return "freeLayout.v1."+(landscape()?"landscape.":"portrait.")+(fullscreen?"full":String.valueOf(tab));}
+    private void scheduleFreeBoard(){
+        final LinearLayout staging=root;
+        staging.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener(){public boolean onPreDraw(){
+            if(staging!=root){if(staging.getViewTreeObserver().isAlive())staging.getViewTreeObserver().removeOnPreDrawListener(this);return true;}
+            if(staging.getWidth()==0||staging.getHeight()==0)return true;
+            staging.getViewTreeObserver().removeOnPreDrawListener(this);mountFreeBoard();return false;
+        }});
+    }
+    private void collectControls(View v,int left,int top,boolean hidden,FreeLayout defaults,Map<String,Integer> duplicates){
+        int x=left+v.getLeft(),y=top+v.getTop();hidden|=initiallyHidden.contains(v);
+        if("footer".equals(v.getTag()))return;
+        if(v instanceof ViewGroup){ViewGroup group=(ViewGroup)v;for(int i=0;i<group.getChildCount();i++)collectControls(group.getChildAt(i),x-v.getScrollX(),y-v.getScrollY(),hidden,defaults,duplicates);return;}
+        String id=v==status?"status":v==statusDetail?"status.detail":v==quick?"quick":v==airTitle?"air.title":v==airDescription?"air.description":v==unicodeInfo?"unicode.info":v.getTag() instanceof String?(String)v.getTag():"view."+v.getClass().getSimpleName();
+        int count=duplicates.containsKey(id)?duplicates.get(id):0;duplicates.put(id,count+1);if(count>0)id+="."+count;
+        float density=getResources().getDisplayMetrics().density;
+        int width=Math.max(v instanceof Button||v instanceof ImageButton?32:1,Math.round(v.getWidth()/density));
+        int height=Math.max(v instanceof Button||v instanceof ImageButton?32:1,Math.round(v.getHeight()/density));
+        if(v instanceof Button){Button button=(Button)v;android.graphics.Paint.FontMetricsInt metrics=button.getPaint().getFontMetricsInt();height=Math.max(height,(int)Math.ceil((Math.max(1,button.getLineCount())*(metrics.descent-metrics.ascent)+v.getPaddingTop()+v.getPaddingBottom())/density));}
+        FreeLayout.Item item=new FreeLayout.Item(id,Math.round(x/density),Math.round(y/density),width,height);item.visible=!hidden;
+        defaults.items.put(id,item);individualViews.put(id,v);
+    }
+    private void mountFreeBoard(){
+        float density=getResources().getDisplayMetrics().density;
+        int width=Math.round((root.getWidth()-root.getPaddingLeft()-root.getPaddingRight())/density);
+        FreeLayout defaults=new FreeLayout(width,Math.round(scale*100));individualViews.clear();
+        Map<String,Integer> duplicates=new HashMap<>();
+        for(int i=0;i<root.getChildCount();i++)collectControls(root.getChildAt(i),-root.getPaddingLeft(),-root.getPaddingTop(),false,defaults,duplicates);
+        defaults.repair();
+        String key=freeKey();FreeLayout saved=FreeLayout.merge(FreeLayout.decode(prefs.getString(key,null)),defaults),model=saved;
+        if(editing){
+            if(layoutDrafts==null)layoutDrafts=new LayoutDrafts();
+            model=layoutDrafts.edit(key,saved);
+            model=layoutDrafts.replace(key,pendingPreset>=0?defaults:FreeLayout.merge(model,defaults));
+        }
+        pendingPreset=-1;layout=null;
+        final FreeLayout active=model;
+        FreeBoard board=new FreeBoard(this,active,new LinkedHashMap<>(individualViews),editing,accent,new FreeBoard.Editor(){
+            public void options(String id){elementOptions(id);}
+            public void changed(String message){if(editMessage!=null)editMessage.setText(message);}
+        });
+        root.removeAllViews();editMessage=null;if(editing)editorToolbar();
+        pageScroll=new ScrollView(this);pageScroll.setFillViewport(true);pageScroll.setClipToPadding(false);
+        root.addView(pageScroll,new LinearLayout.LayoutParams(-1,0,1));pageScroll.addView(board,new ScrollView.LayoutParams(-1,-2));
+        freeBoard=board;footer();root.requestApplyInsets();update();
+    }
+    private void beginArrangement(){
+        if(editing)return;saveDraft();hideKeyboard();session.pauseAll();layoutDrafts=new LayoutDrafts();
+        if(freeBoard!=null)layoutDrafts.edit(freeKey(),freeBoard.layout);
+        editing=true;build();
+    }
+    private void editorToolbar(){
+        LinearLayout bar=column();bar.setPadding(dp(8),dp(3),dp(8),dp(3));bar.setBackgroundColor(card);root.addView(bar);
+        LinearLayout actions=row();bar.addView(actions);editorButton(actions,"Speichern & fertig",this::saveArrangement,true);editorButton(actions,"Änderungen verwerfen",this::discardArrangement,false);
+        LinearLayout tools=row();bar.addView(tools);editorButton(tools,"Elemente",this::elementSelection,false);editorButton(tools,"Vorlagen",this::presets,false);
+        editorButton(tools,"Seite",()->dialog().setTitle("Anordnung bearbeiten").setItems(new String[]{"Bedienung","Tastatur","Verbindung","Vollbild"},(d,which)->{saveDraft();fullscreen=which==3;if(which<3)tab=which;build();}).setNegativeButton("Zurück",null).show(),false);
+        editMessage=hint(bar,"Ziehen: verschieben · Tippen: Größe und Position");editMessage.setTextSize(11);editMessage.setMaxLines(2);editMessage.setMinLines(2);editMessage.setEllipsize(TextUtils.TruncateAt.END);
+    }
+    private Button editorButton(LinearLayout row,String name,Runnable action,boolean primary){Button b=rowButton(row,name,action,primary);b.setTextSize(12);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(42),1);p.setMargins(dp(2),dp(2),dp(2),0);b.setLayoutParams(p);return b;}
+    private void saveArrangement(){
+        if(!editing||layoutDrafts==null)return;
+        try{
+            android.content.SharedPreferences.Editor writer=prefs.edit();
+            for(Map.Entry<String,String> value:layoutDrafts.savedValues().entrySet())writer.putString(value.getKey(),value.getValue());
+            if(!writer.commit()){toast("Anordnung konnte nicht gespeichert werden. Bitte erneut versuchen.");return;}
+            editing=false;layoutDrafts=null;pendingPreset=-1;layout=null;build();toast("Anordnung gespeichert");
+        }catch(IllegalStateException error){toast("Bitte überlappende oder ungültige Positionen korrigieren.");}
+    }
+    private void discardArrangement(){editing=false;layoutDrafts=null;pendingPreset=-1;layout=null;build();toast("Änderungen verworfen");}
+    private void leaveArrangement(){
+        if(layoutDrafts==null||!layoutDrafts.dirty()){editing=false;layoutDrafts=null;build();return;}
+        dialog().setTitle("Anordnung geändert").setMessage("Was möchtest du mit deinen Änderungen machen?")
+            .setPositiveButton("Speichern",(d,w)->saveArrangement()).setNegativeButton("Verwerfen",(d,w)->discardArrangement()).setNeutralButton("Weiter bearbeiten",null).show();
+    }
+    private boolean requiredElement(String id){return id.equals("button.Anordnen")||id.equals("button.← Zurück");}
+    private String elementName(String id){
+        View v=individualViews.get(id);if(v==pad)return "Touchpad";if(v==input)return "Texteingabe";
+        CharSequence description=v==null?null:v.getContentDescription();if(description==null||description.length()==0)description=v instanceof TextView?((TextView)v).getText():id;
+        String value=description.toString().replace('\n',' ');return value.length()>65?value.substring(0,62)+"…":value;
+    }
+    private void elementSelection(){
+        if(!editing||freeBoard==null)return;
+        List<String> ids=new ArrayList<>(individualViews.keySet());String[] names=new String[ids.size()];boolean[] checked=new boolean[ids.size()];
+        for(int i=0;i<ids.size();i++){names[i]=elementName(ids.get(i));checked[i]=freeBoard.layout.item(ids.get(i)).visible;}
+        layoutDialog=dialog().setTitle("Sichtbare einzelne Elemente").setMultiChoiceItems(names,checked,(d,index,on)->{
+            String id=ids.get(index);if(!on&&requiredElement(id)){((AlertDialog)d).getListView().setItemChecked(index,true);toast("Dieser Knopf bleibt zum Anordnen erreichbar.");return;}
+            freeBoard.layout.show(id,on);freeBoard.refresh();if(editMessage!=null)editMessage.setText("Sichtbarkeit geändert · noch nicht gespeichert.");
+        }).setPositiveButton("Fertig",null).show();
+    }
+    private EditText geometryField(LinearLayout row,String title,int number){
+        LinearLayout field=column();LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(3),0,dp(3),0);row.addView(field,p);
+        label(field,title,12,muted,false);EditText value=new EditText(this);value.setTextColor(text);value.setSingleLine(true);value.setTextSize(15);value.setInputType(InputType.TYPE_CLASS_NUMBER);value.setText(String.valueOf(number));value.setSelectAllOnFocus(true);field.addView(value,new LinearLayout.LayoutParams(-1,dp(44)));return value;
+    }
+    private void elementOptions(String id){
+        if(!editing||freeBoard==null)return;FreeLayout.Item item=freeBoard.layout.item(id);if(item==null)return;
+        LinearLayout box=column();box.setPadding(dp(12),dp(4),dp(12),dp(8));LinearLayout position=row(),size=row();box.addView(position);box.addView(size);
+        EditText x=geometryField(position,"Links",item.x),y=geometryField(position,"Oben",item.y),width=geometryField(size,"Breite",item.width),height=geometryField(size,"Höhe",item.height);
+        hint(box,"Die Fläche muss frei sein. Alle Änderungen bleiben bis „Speichern & fertig“ vorläufig.");
+        AlertDialog.Builder builder=dialog().setTitle(elementName(id)).setView(box).setPositiveButton("Übernehmen",null).setNegativeButton("Zurück",null);
+        if(!requiredElement(id))builder.setNeutralButton("Ausblenden",(d,w)->{freeBoard.layout.show(id,false);freeBoard.refresh();});
+        layoutDialog=builder.create();layoutDialog.setOnShowListener(d->layoutDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            try{
+                int nx=Integer.parseInt(x.getText().toString()),ny=Integer.parseInt(y.getText().toString()),nw=Integer.parseInt(width.getText().toString()),nh=Integer.parseInt(height.getText().toString());
+                View control=individualViews.get(id);int minW=control==pad?80:control instanceof EditText?80:control instanceof Button||control instanceof ImageButton?32:10;
+                int minH=control==pad?80:control instanceof EditText?48:control instanceof Button||control instanceof ImageButton?Math.max(32,Math.round(40*scale)):Math.max(10,Math.round(12*scale));
+                if(control instanceof Button){android.graphics.Paint.FontMetricsInt metrics=((Button)control).getPaint().getFontMetricsInt();float density=getResources().getDisplayMetrics().density;minH=Math.max(minH,(int)Math.ceil((2*(metrics.descent-metrics.ascent)+control.getPaddingTop()+control.getPaddingBottom())/density));}
+                if((nw!=item.width||nh!=item.height)&&(nw<minW||nh<minH)){toast("Mindestens "+minW+" × "+minH+" für dieses Element.");return;}
+                if(!freeBoard.layout.place(id,nx,ny,nw,nh)){toast("Platz belegt oder außerhalb der Fläche. Bitte eine freie Position wählen.");return;}
+                freeBoard.refresh();if(editMessage!=null)editMessage.setText("Position und Größe geändert · noch nicht gespeichert.");layoutDialog.dismiss();
+            }catch(NumberFormatException error){toast("Bitte gültige ganze Zahlen eingeben.");}
+        }));layoutDialog.show();
     }
     private TouchPad touchpad(){
         TouchPad p=new TouchPad(this,new TouchPad.Sink(){public void move(int x,int y,int w){hid.move(x,y,w);}public void click(int b){if(!session.dragging)hid.click(b);}public void touching(boolean value){session.touching=value;session.hold();}},accent,muted);
-        p.setMinimumHeight(0);p.uiScale=scale;p.setBackground(shape(card,border,15));connectedViews.add(p);return p;
+        p.setTag("pad");p.setClipToOutline(true);p.setMinimumHeight(0);p.uiScale=scale;p.setBackground(shape(card,border,15));connectedViews.add(p);return p;
     }
     private void airTile(LinearLayout c){
         airTitle=label(c,"Air-Maus · pausiert",18,text,true);
-        airDescription=hint(c,"");airDescription.setMinLines(1);airDescription.setMaxLines(2);airDescription.setEllipsize(TextUtils.TruncateAt.END);
+        airDescription=hint(c,"");airDescription.setMinLines(2);airDescription.setMaxLines(2);airDescription.setEllipsize(TextUtils.TruncateAt.END);
         airToggle=button(c,"Air-Maus einschalten",()->{session.toggleAir();if(!air.available())toast("Kein Gyroskop gefunden.");},true);
         LinearLayout controls=row();c.addView(controls);
         calibrate=rowButton(controls,"Kalibrieren",()->{air.calibrate();toast("Handy etwa eine Sekunde stillhalten.");update();},false);
@@ -206,13 +318,13 @@ public final class MainActivity extends Activity {
         b.setOnTouchListener((v,e)->{if(!v.isEnabled())return false;if(e.getActionMasked()==MotionEvent.ACTION_DOWN){v.setPressed(true);repeat[0].run();}else if(e.getActionMasked()==MotionEvent.ACTION_UP||e.getActionMasked()==MotionEvent.ACTION_CANCEL){v.setPressed(false);main.removeCallbacks(repeat[0]);if(e.getActionMasked()==MotionEvent.ACTION_UP)v.performClick();}return true;});
     }
     private void buildFullscreen(){
-        LinearLayout top=row();top.setPadding(u(10),u(3),u(10),u(4));root.addView(top);rowButton(top,"← Zurück",()->{fullscreen=false;build();},false);
+        LinearLayout top=row();top.setPadding(u(10),u(3),u(10),u(4));root.addView(top);rowButton(top,"← Zurück",()->{fullscreen=false;build();},false);rowButton(top,"Anordnen",this::beginArrangement,false);
         quick=rowButton(top,"Verbinden",this::quickConnect,true);pad=touchpad();LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,0,1);p.setMargins(u(10),u(5),u(10),u(5));root.addView(pad,p);
         LinearLayout clicks=column();clicks.setPadding(u(9),0,u(9),u(3));root.addView(clicks);clicksTile(clicks);wheelTile(clicks);footer();
     }
     private void keyboardTile(LinearLayout c){
         help(c,"Mit Gboard tippen, diktieren oder Emojis auswählen. Anschließend senden.");
-        input=new EditText(this);input.setTextColor(text);input.setHintTextColor(muted);input.setTextSize(16*scale);input.setGravity(Gravity.TOP|Gravity.START);input.setHint("Dein Text für Windows …");input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)});input.setMinLines(2);input.setMaxLines(5);input.setPadding(u(10),u(8),u(10),u(8));input.setBackground(shape(bg,border,10));input.setText(session.textDraft.value);input.setEnabled(!editing);
+        input=new EditText(this);input.setTag("text.input");input.setTextColor(text);input.setHintTextColor(muted);input.setTextSize(16*scale);input.setGravity(Gravity.TOP|Gravity.START);input.setHint("Dein Text für Windows …");input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE|InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)});input.setMinLines(2);input.setMaxLines(5);input.setPadding(u(10),u(8),u(10),u(8));input.setBackground(shape(bg,border,10));input.setText(session.textDraft.value);input.setEnabled(!editing);
         LinearLayout.LayoutParams ep=new LinearLayout.LayoutParams(-1,-2);ep.topMargin=u(5);c.addView(input,ep);
         input.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int count,int after){}public void onTextChanged(CharSequence s,int st,int before,int count){session.textDraft.value=s.toString();update();}public void afterTextChanged(Editable e){}});
         sendButton=button(c,"Text an PC senden",()->{saveDraft();try{hid.text(session.textDraft.value);hideKeyboard();}catch(IllegalArgumentException e){dialog().setTitle("Text noch nicht gesendet").setMessage(e.getMessage()).setPositiveButton("Verstanden",null).show();}},true);
@@ -288,7 +400,9 @@ public final class MainActivity extends Activity {
         if(sendButton!=null){sendButton.setText(typing?"Sendet · "+hid.sent+" / "+hid.total:"Text an PC senden");sendButton.setEnabled(connected&&!typing&&!editing&&!session.textDraft.value.isEmpty());cancelText.setEnabled(typing&&!editing);restoreButton.setEnabled(!typing&&!editing&&session.textDraft.value.isEmpty()&&!session.textDraft.lastSent.isEmpty());}
         if(unicodeInfo!=null)unicodeInfo.setText(hid.unicode.ready?"✓ Gboard-Emojis und Unicode bereit":hid.unicode.connecting?hid.unicode.status:tab==2?hid.unicode.status:"Deutsch (Deutschland) · Feststelltaste aus. Gboard-Emojis über den optionalen PC-Helfer.");
         if(retryButton!=null){retryButton.setText(!hasPermissions()?"Bluetooth erlauben":hid.registered?"Bluetooth ist bereit":"Bluetooth starten");retryButton.setEnabled(!hasPermissions()||(!hid.registered&&!hid.registering));pairButton.setEnabled(hasPermissions()&&!connected);disconnectButton.setEnabled(connected);}
-        if(deviceList!=null){List<BluetoothDevice> ds=hasPermissions()?hid.paired():new ArrayList<>();String signature=ds.toString()+connected+hid.registered+hid.connecting;if(!signature.equals(deviceSignature)){deviceSignature=signature;deviceList.removeAllViews();if(ds.isEmpty())hint(deviceList,"Noch keine Geräte. Am PC koppeln.");else for(BluetoothDevice d:ds){Button b=button(deviceList,HidController.name(d)+(connected&&d.equals(hid.host)?" · verbunden":""),()->hid.connect(d),connected&&d.equals(hid.host));b.setEnabled(!connected&&!hid.connecting);}}}
+        if(deviceList!=null){List<BluetoothDevice> ds=hasPermissions()?hid.paired():new ArrayList<>();String signature=ds.toString()+connected+hid.registered+hid.connecting;if(!signature.equals(deviceSignature)){if(freeBoard!=null){if(!editing&&!constructing&&!rebuildPosted){rebuildPosted=true;main.post(refreshSurface);}return;}deviceSignature=signature;deviceList.removeAllViews();if(ds.isEmpty())hint(deviceList,"Noch keine Geräte. Am PC koppeln.");else for(BluetoothDevice d:ds){Button b=button(deviceList,HidController.name(d)+(connected&&d.equals(hid.host)?" · verbunden":""),()->hid.connect(d),connected&&d.equals(hid.host));b.setTag("pc."+d.getAddress());b.setEnabled(!connected&&!hid.connecting);}}}
+        if(editing&&input!=null)input.setEnabled(false);
+        if(editing&&freeBoard!=null)for(View v:individualViews.values())v.setEnabled(false);
         if(connected&&!session.keepOff()&&resumed)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
     private void settings(){

@@ -1,12 +1,12 @@
-# AirPit 0.0.3
+# AirPit 0.0.4
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.3/AirPit-v0.0.3.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.3/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.3.md)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.4/AirPit-v0.0.4.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.4/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.4.md)
 
 ## Mit Windows verbinden
 
-1. APK auf dem S10 installieren; 0.0.3 lässt sich mit derselben Signierung über 0.0.1 oder 0.0.2 installieren.
+1. APK auf dem S10 installieren; 0.0.4 lässt sich mit derselben Signierung über 0.0.1, 0.0.2 oder 0.0.3 installieren.
 2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
 3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
 4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
@@ -28,12 +28,16 @@ Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen
 | Maustasten | Gedrückt halten oder mit „Ziehen“ die linke Taste einrasten lassen |
 | Scrollen | Mit zwei Fingern oder den Scrolltasten, auch länger gedrückt |
 | Vollbild | Große Touchpad-Fläche mit Maus-/Scrolltasten und Verbindungstaste |
-| Anordnen | Bearbeitungsmodus öffnen; den Griff gedrückt halten und die Kachel an die gewünschte Stelle ziehen |
-| Größe | Im Bearbeitungsmodus über „⋮“ Breite und Höhe einstellen |
-| Kacheln | Im Bearbeitungsmodus aus-/einblenden |
+| Anordnen | Einzelne Klickflächen auf der gesamten App-Fläche ziehen; auch die oberen Bedienknöpfe |
+| Größe und Position | Im Bearbeitungsmodus das einzelne Element antippen; Position, Breite und Höhe ändern |
+| Elemente | Im Bearbeitungsmodus jede einzelne Fläche aus-/einblenden |
+| Speichern & fertig | Alle Entwürfe der laufenden Bearbeitung übernehmen |
+| Änderungen verwerfen | Gespeicherte Positionen, Größen und Sichtbarkeit wiederherstellen |
 | Vorlagen | Großes Touchpad, Air-Maus, Kompakt, Maus und Text oder Standard |
 
-Hoch- und Querformat besitzen eigene gespeicherte Layouts. Touchpad, Air-Steuerung, Maustasten, Scrollen, Texteingabe und Direkttasten lassen sich gemeinsam auf der Bedienseite verwenden. Die Touchpad-Höhe wird unabhängig von der Darstellungsgröße eingestellt.
+Hoch- und Querformat sowie Bedienung, Tastatur, Verbindung und Vollbild besitzen eigene gespeicherte Anordnungen. Jede Klickfläche ist unabhängig; es gibt keine Bindung an feste Zeilen oder Gruppen. Auch Touchpad, Texteingabe, Hinweise und Kopfzeile sind Teil derselben frei nutzbaren Fläche. Am Rand wird beim Ziehen weitergescrollt. Die Touchpad-Höhe wird unabhängig von der Darstellungsgröße eingestellt.
+
+Belegte Positionen werden abgewiesen. Beim Ziehen zeigt eine rote Umrandung ungültige Positionen; nach dem Loslassen bleibt die vorherige Position erhalten. Ein-/ausblenden und Vorlagen ändern nur den Entwurf. Erst **Speichern & fertig** übernimmt die gesamte laufende Bearbeitung und bestätigt **Anordnung gespeichert**. **Änderungen verwerfen** stellt den gespeicherten Stand wieder her. Bei Zurück mit offenen Änderungen stehen **Speichern**, **Verwerfen** und **Weiter bearbeiten** zur Auswahl. Entwürfe bleiben beim Drehen des Handys und beim Wechsel der bearbeiteten Seite erhalten.
 
 Unter **Einstellungen**: Darstellungsgröße **50–150 %**, Rückstellung auf 100 %, Empfindlichkeit, Glättung, Zitterfilter, Bewegungsachsen, Richtungsumkehr und ein-/ausblendbare Erklärungen.
 

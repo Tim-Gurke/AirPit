@@ -32,14 +32,15 @@ public final class TouchPad extends View {
         for(float px=18*density;px<getWidth();px+=22*density)for(float py=16*density;py<getHeight();py+=22*density)c.drawCircle(px,py,density,paint);
         paint.setAlpha(255);paint.setTextAlign(Paint.Align.CENTER);paint.setTypeface(android.graphics.Typeface.create("sans-serif-medium",0));
         paint.setTextSize(14*density*uiScale);paint.setColor(isEnabled()?muted:0xff77828e);
-        c.drawText("TOUCHPAD",getWidth()/2f,getHeight()/2f-3*density,paint);
+        c.drawText(fit("TOUCHPAD"),getWidth()/2f,getHeight()/2f-3*density,paint);
         paint.setTextSize(11*density*uiScale);paint.setTypeface(android.graphics.Typeface.create("sans-serif",0));
-        c.drawText(isEnabled()?"Ein Finger bewegt · zwei scrollen":"Zuerst mit dem PC verbinden",getWidth()/2f,getHeight()/2f+20*density,paint);
+        c.drawText(fit(isEnabled()?"Ein Finger bewegt · zwei scrollen":"Zuerst mit dem PC verbinden"),getWidth()/2f,getHeight()/2f+20*density,paint);
         if(touched&&isEnabled()) {
             paint.setColor(accent);paint.setAlpha(40);c.drawCircle(x,y,27*density,paint);
             paint.setAlpha(220);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(2*density);c.drawCircle(x,y,12*density,paint);paint.setStyle(Paint.Style.FILL);
         }
     }
+    private String fit(String value){float width=Math.max(0,getWidth()-16*density);if(paint.measureText(value)<=width)return value;int end=paint.breakText(value,true,Math.max(0,width-paint.measureText("…")),null);return value.substring(0,end)+"…";}
     @Override public boolean onTouchEvent(MotionEvent e) {
         if(!isEnabled())return false;
         switch(e.getActionMasked()) {

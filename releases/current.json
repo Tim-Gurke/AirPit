@@ -1,9 +1,9 @@
 {
-  "version": "0.0.3",
-  "versionCode": 3,
-  "apk": "releases/AirPit-v0.0.3.apk",
-  "sha256": "aeb61b521fc3f86cf0861d2e60156a26fa14451f8b03c410d56086fcc712cb7e",
-  "source_sha256": "5799b1fef409896d65367d88521dedc9d44f2fcbe24d9f034cf44e5884910184",
+  "version": "0.0.4",
+  "versionCode": 4,
+  "apk": "releases/AirPit-v0.0.4.apk",
+  "sha256": "96c8e031a9cd0f37d5a00a46b36bc8c1f0ccfd5b337a23664e1e565bd0884bb1",
+  "source_sha256": "256cec15a582c2174f7a94dff57b51584cb3669d22fd46e65bb465ea83c3fbf1",
   "assets": [
     {
       "path": "releases/AirPit-Unicode-Windows.zip",
@@ -11,6 +11,6 @@
     }
   ],
   "minimumAndroid": "9",
-  "verification": "HID/keyboard/motion, selectable gyro axes and rotation checks; repeated-send sampled-host, cancellation, timeout, draft and layout checks; CI verifies fresh Android source payload and Windows helper",
-  "hardwareTest": "S10/Windows Bluetooth text delivery and preferred side-tilt motion require physical testing"
+  "verification": "146 HID/keyboard/motion checks; 426 transport checks; 2938 layout/transaction checks; Android 9 startup/editor/visual checks (full UI interaction limited by emulator system-service failure); CI source-payload and Windows-helper verification",
+  "hardwareTest": "S10/Windows Bluetooth and personal arrangements require physical testing"
 }
