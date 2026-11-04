@@ -1,12 +1,12 @@
-# AirPit 0.0.5
+# AirPit 0.0.6
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.5/AirPit-v0.0.5.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.5/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.5.md)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.6/AirPit-v0.0.6.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.6/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.6.md)
 
 ## Mit Windows verbinden
 
-1. APK auf dem S10 installieren; 0.0.5 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.4 installieren.
+1. APK auf dem S10 installieren; 0.0.6 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.5 installieren.
 2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
 3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
 4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
@@ -25,6 +25,7 @@ Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen
 | Kalibrieren | Etwa eine Sekunde stillhalten |
 | Umgreifen | Taste gedrückt halten, Handy neu ausrichten, loslassen |
 | Touchpad | Ein Finger bewegt; tippen klickt links; zwei Finger scrollen oder tippen kurz für Rechtsklick |
+| Touchpad-Geschwindigkeit | Unter Einstellungen von 25 bis 300 % wählen; 100 % entspricht dem bisherigen Tempo |
 | Maustasten | Gedrückt halten oder mit „Ziehen“ die linke Taste einrasten lassen |
 | Scrollen | Mit zwei Fingern oder den Scrolltasten, auch länger gedrückt |
 | Vollbild | Große Touchpad-Fläche mit Maus-/Scrolltasten und Verbindungstaste |
@@ -41,9 +42,11 @@ Im Anordnungsmodus zeigt ein feines Punktraster Positionen im Abstand von 4 dp; 
 
 Die Vorschau startet bei jeder Bewegung von der ursprünglichen Anordnung des Ziehvorgangs. Beim Wegziehen rücken Nachbarn deshalb wieder zurück. Ein Abbruch stellt alle vorherigen Positionen wieder her. Beim Wiedereinblenden und beim Ändern der Position oder Größe kann ebenfalls Platz geschaffen werden. Vorhandene gespeicherte Anordnungen werden beim Öffnen nicht automatisch neu ausgerichtet. Ein-/ausblenden und Vorlagen ändern nur den Entwurf. Erst **Speichern & fertig** übernimmt die gesamte laufende Bearbeitung und bestätigt **Anordnung gespeichert**. **Änderungen verwerfen** stellt den gespeicherten Stand wieder her. Bei Zurück mit offenen Änderungen stehen **Speichern**, **Verwerfen** und **Weiter bearbeiten** zur Auswahl. Entwürfe bleiben beim Drehen des Handys und beim Wechsel der bearbeiteten Seite erhalten.
 
-Unter **Einstellungen**: Darstellungsgröße **50–150 %**, Rückstellung auf 100 %, Empfindlichkeit, Glättung, Zitterfilter, Bewegungsachsen, Richtungsumkehr und ein-/ausblendbare Erklärungen.
+Unter **Einstellungen**: Darstellungsgröße **50–150 %**, Rückstellung auf 100 %, Touchpad-Geschwindigkeit (25–300 %), Air-Maus-Empfindlichkeit, Glättung, Zitterfilter, Bewegungsachsen, Richtungsumkehr und ein-/ausblendbare Erklärungen.
 
 Unter **Einstellungen → Bewegungsachsen → Links / rechts** kann **Seitlich neigen / schwenken** gewählt werden: die linke oder rechte Handykante absenken. Hoch/runter bleibt auf Vor-/Zurückneigen; beide Richtungen lassen sich unabhängig zuordnen und umkehren. Die Zuordnung wird gespeichert und folgt der Bildschirmausrichtung. Die bisherige Bedienung bleibt beim Update voreingestellt.
+
+Unter **Einstellungen → Touchpad-Geschwindigkeit** lässt sich die Ein-Finger-Zeigerbewegung unabhängig von der Gyro-Air-Maus einstellen. **100 %** ist das bisherige Tempo, **25 %** langsamer und **300 %** schneller. **Touchpad auf 100 %** stellt den Standard wieder her. Der Wert bleibt beim Drehen, im Vollbild und nach dem erneuten Öffnen der App erhalten.
 
 ## Bei ausgeschaltetem S10-Display
 

@@ -10,6 +10,7 @@ import de.airpit.app.core.HidReports;
 
 /** One-finger pointer, tap to click, two-finger scroll/right tap. */
 public final class TouchPad extends View {
+    public static final int MIN_SPEED_PERCENT=25,MAX_SPEED_PERCENT=300,DEFAULT_SPEED_PERCENT=100;
     public interface Sink {void move(int x,int y,int wheel);void click(int button);void touching(boolean value);}
     private final Sink sink;
     private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -19,12 +20,17 @@ public final class TouchPad extends View {
     private float x,y,startX,startY,focusY,maxDistance;
     private double remainderX,remainderY,remainderWheel;
     private long startTime;
+    private int speedPercent=DEFAULT_SPEED_PERCENT;
     public float uiScale=1;
     public TouchPad(Context context,Sink sink,int accent,int muted) {
         super(context);this.sink=sink;this.accent=accent;this.muted=muted;
         density=getResources().getDisplayMetrics().density;
         setContentDescription("Touchpad. Ein Finger bewegt den Mauszeiger. Tippen klickt links. Zwei Finger scrollen; kurzes Tippen mit zwei Fingern klickt rechts.");
         setFocusable(true);setClickable(true);setMinimumHeight(Math.round(180*density));
+    }
+    public void setSpeedPercent(int percent){
+        int next=Math.max(MIN_SPEED_PERCENT,Math.min(MAX_SPEED_PERCENT,percent));
+        if(next!=speedPercent){speedPercent=next;remainderX=remainderY=0;}
     }
     @Override protected void onDraw(Canvas c) {
         super.onDraw(c);
@@ -59,7 +65,8 @@ public final class TouchPad extends View {
                 } else {
                     maxDistance=Math.max(maxDistance,(float)Math.hypot(e.getX()-startX,e.getY()-startY));
                     if(!two) {
-                        remainderX+=(e.getX()-x)*1.7/density;remainderY+=(e.getY()-y)*1.7/density;
+                        double factor=speedPercent/100.0;
+                        remainderX+=(e.getX()-x)*1.7/density*factor;remainderY+=(e.getY()-y)*1.7/density*factor;
                         int dx=HidReports.clamp((int)remainderX),dy=HidReports.clamp((int)remainderY);
                         remainderX-=dx;remainderY-=dy;sink.move(dx,dy,0);
                     }

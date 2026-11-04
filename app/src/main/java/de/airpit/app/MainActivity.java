@@ -24,6 +24,7 @@ import java.util.*;
 
 public final class MainActivity extends Activity {
     private static final int BT_PERMISSION=41,ENABLE=42,DISCOVER=43,NOTIFICATIONS=44;
+    private static final String TOUCHPAD_SPEED="touchpadSpeed";
     private final Handler main=new Handler(Looper.getMainLooper());
     private AirSession session;private HidController hid;private AirMotion air;
     private android.content.SharedPreferences prefs;
@@ -33,7 +34,7 @@ public final class MainActivity extends Activity {
     private TextView status,statusDetail,airTitle,airDescription,unicodeInfo;
     private Button quick,airToggle,calibrate,grip,dragButton,sendButton,cancelText,restoreButton,retryButton,pairButton,disconnectButton;
     private EditText input;private TouchPad pad;private TileLayout layout;private String loadedLayoutKey="";
-    private SeekBar uiScaleBar;private AlertDialog layoutDialog;
+    private SeekBar uiScaleBar,touchpadSpeedBar;private AlertDialog layoutDialog;
     private final List<View> connectedViews=new ArrayList<>(),keyboardViews=new ArrayList<>();
     private final List<Button> tabs=new ArrayList<>();
     private String deviceSignature="";
@@ -291,6 +292,7 @@ public final class MainActivity extends Activity {
     }
     private TouchPad touchpad(){
         TouchPad p=new TouchPad(this,new TouchPad.Sink(){public void move(int x,int y,int w){hid.move(x,y,w);}public void click(int b){if(!session.dragging)hid.click(b);}public void touching(boolean value){session.touching=value;session.hold();}},accent,muted);
+        p.setSpeedPercent(prefs.getInt(TOUCHPAD_SPEED,TouchPad.DEFAULT_SPEED_PERCENT));
         p.setTag("pad");p.setClipToOutline(true);p.setMinimumHeight(0);p.uiScale=scale;p.setBackground(shape(card,border,15));connectedViews.add(p);return p;
     }
     private void airTile(LinearLayout c){
@@ -410,7 +412,10 @@ public final class MainActivity extends Activity {
         saveDraft();hideKeyboard();LinearLayout box=column();box.setPadding(u(18),u(8),u(18),u(12));box.setBackgroundColor(card);
         slider(box,"Darstellungsgröße","uiScale",100,50,150,()->build());
         LinearLayout reset=row();box.addView(reset);rowButton(reset,"100 %",()->{prefs.edit().putInt("uiScale",100).apply();if(uiScaleBar!=null)uiScaleBar.setProgress(50);build();},false);
-        slider(box,"Empfindlichkeit","speed",50,0,100,session::configure);slider(box,"Glättung","smooth",35,0,100,session::configure);slider(box,"Zitterfilter","steady",30,0,100,session::configure);
+        slider(box,"Touchpad-Geschwindigkeit",TOUCHPAD_SPEED,TouchPad.DEFAULT_SPEED_PERCENT,TouchPad.MIN_SPEED_PERCENT,TouchPad.MAX_SPEED_PERCENT,this::applyTouchpadSpeed);
+        hint(box,"25–300 % · 100 % ist die bisherige Geschwindigkeit. Kleine Werte für genaues Zielen, große für schnelle Wege.");
+        button(box,"Touchpad auf 100 %",()->{prefs.edit().putInt(TOUCHPAD_SPEED,TouchPad.DEFAULT_SPEED_PERCENT).apply();if(touchpadSpeedBar!=null)touchpadSpeedBar.setProgress(TouchPad.DEFAULT_SPEED_PERCENT-TouchPad.MIN_SPEED_PERCENT);applyTouchpadSpeed();},false);
+        slider(box,"Air-Maus-Empfindlichkeit","speed",50,0,100,session::configure);slider(box,"Glättung","smooth",35,0,100,session::configure);slider(box,"Zitterfilter","steady",30,0,100,session::configure);
         axisSettings(box);
         toggle(box,"Richtung links / rechts umkehren","invertX",session::configure);toggle(box,"Richtung hoch / runter umkehren","invertY",session::configure);
         toggle(box,"Erklärungen anzeigen","help",()->showPage());
@@ -419,6 +424,7 @@ public final class MainActivity extends Activity {
         button(box,"Diagnose ohne Textinhalte",this::diagnostics,false);
         ScrollView scroll=new ScrollView(this);scroll.addView(box);dialog().setTitle("Einstellungen").setView(scroll).setPositiveButton("Fertig",(d,w)->{saveDraft();build();}).show();
     }
+    private void applyTouchpadSpeed(){if(pad!=null)pad.setSpeedPercent(prefs.getInt(TOUCHPAD_SPEED,TouchPad.DEFAULT_SPEED_PERCENT));}
     private MotionAxes motionAxes(){return new MotionAxes(prefs.getInt("gyroHorizontal",MotionAxes.TURN),prefs.getInt("gyroVertical",MotionAxes.FORWARD_TILT));}
     private void saveAxes(MotionAxes axes){prefs.edit().putInt("gyroHorizontal",axes.horizontal).putInt("gyroVertical",axes.vertical).apply();session.configure();}
     private static final String[] AXIS_NAMES={"Drehen","Seitlich neigen / schwenken","Vor / zurück neigen"};
@@ -448,7 +454,7 @@ public final class MainActivity extends Activity {
     }
     private Switch toggle(LinearLayout p,String name,String key,Runnable apply){Switch s=new Switch(this);s.setText(name);s.setTextSize(13*scale);s.setTextColor(text);s.setPadding(0,u(9),0,u(9));s.setChecked(prefs.getBoolean(key,false));p.addView(s,new LinearLayout.LayoutParams(-1,-2));s.setOnCheckedChangeListener((b,v)->{prefs.edit().putBoolean(key,v).apply();apply.run();});return s;}
     private void slider(LinearLayout p,String name,String key,int fallback,int min,int max,Runnable apply){
-        int initial=Math.max(min,Math.min(max,prefs.getInt(key,fallback)));TextView title=label(p,name+" · "+initial+" %",14,text,true);SeekBar bar=new SeekBar(this);if(key.equals("uiScale"))uiScaleBar=bar;bar.setMax(max-min);bar.setProgress(initial-min);bar.setProgressTintList(ColorStateList.valueOf(accent));bar.setThumbTintList(ColorStateList.valueOf(accent));p.addView(bar,new LinearLayout.LayoutParams(-1,dp(40)));
+        int initial=Math.max(min,Math.min(max,prefs.getInt(key,fallback)));TextView title=label(p,name+" · "+initial+" %",14,text,true);SeekBar bar=new SeekBar(this);if(key.equals("uiScale"))uiScaleBar=bar;if(key.equals(TOUCHPAD_SPEED))touchpadSpeedBar=bar;bar.setMax(max-min);bar.setProgress(initial-min);bar.setProgressTintList(ColorStateList.valueOf(accent));bar.setThumbTintList(ColorStateList.valueOf(accent));p.addView(bar,new LinearLayout.LayoutParams(-1,dp(40)));
         bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int v,boolean user){title.setText(name+" · "+(v+min)+" %");if(user)prefs.edit().putInt(key,v+min).apply();}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){saveDraft();apply.run();}});
     }
     private void diagnostics(){String report=session.diagnostics();dialog().setTitle("Diagnose").setMessage(report).setPositiveButton("Schließen",null).setNeutralButton("Kopieren",(d,w)->{((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("AirPit Diagnose",report));toast("Diagnose kopiert.");}).show();}
