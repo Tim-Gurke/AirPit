@@ -1,5 +1,7 @@
 # AirPit 0.0.8
 
+[Projektseite der Pit-Apps](https://wohnpit.extraordinarygrove.chatgpt.site/airpit/) · [WohnPit – Energie, Gas und Wasser](https://github.com/Tim-Gurke/WohnPit)
+
 [Download](https://github.com/Tim-Gurke/AirPit/releases/latest) · [Anleitung](docs/ANLEITUNG.md) · [Versionshistorie](docs/VERSIONSHISTORIE.md) · [Prüfbericht](docs/qa/0.0.8.md)
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
