@@ -20,10 +20,15 @@ import de.airpit.app.core.TileLayout;
 import de.airpit.app.core.MotionAxes;
 import de.airpit.app.core.FreeLayout;
 import de.airpit.app.core.LayoutDrafts;
+import de.airpit.app.core.SettingsBackup;
+import java.io.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public final class MainActivity extends Activity {
-    private static final int BT_PERMISSION=41,ENABLE=42,DISCOVER=43,NOTIFICATIONS=44;
+    private static final int BT_PERMISSION=41,ENABLE=42,DISCOVER=43,NOTIFICATIONS=44,BACKUP_EXPORT=45,BACKUP_IMPORT=46;
     private static final String TOUCHPAD_SPEED="touchpadSpeed";
     private final Handler main=new Handler(Looper.getMainLooper());
     private AirSession session;private HidController hid;private AirMotion air;
@@ -34,7 +39,8 @@ public final class MainActivity extends Activity {
     private TextView status,statusDetail,airTitle,airDescription,unicodeInfo;
     private Button quick,airToggle,calibrate,grip,dragButton,sendButton,cancelText,restoreButton,retryButton,pairButton,disconnectButton;
     private EditText input;private TouchPad pad;private TileLayout layout;private String loadedLayoutKey="";
-    private SeekBar uiScaleBar,touchpadSpeedBar;private AlertDialog layoutDialog;
+    private SeekBar uiScaleBar,touchpadSpeedBar;private AlertDialog layoutDialog,settingsDialog;
+    private boolean backupBusy;
     private final List<View> connectedViews=new ArrayList<>(),keyboardViews=new ArrayList<>();
     private final List<Button> tabs=new ArrayList<>();
     private String deviceSignature="";
@@ -385,7 +391,11 @@ public final class MainActivity extends Activity {
         if(code==NOTIFICATIONS&&pendingScreenOff){pendingScreenOff=false;boolean allowed=Build.VERSION.SDK_INT<33||checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED;session.setKeepOff(allowed);if(!allowed)toast("Für Display-aus-Steuerung bitte die Benachrichtigung mit Stopptaste erlauben.");}
         update();
     }
-    @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==ENABLE){if(result==RESULT_OK)ensureBluetooth(pendingDiscover);else pendingDiscover=pendingConnect=false;}if(request==DISCOVER&&result>0)toast("Jetzt das S10 in Windows koppeln.");update();}
+    @Override protected void onActivityResult(int request,int result,Intent data){
+        super.onActivityResult(request,result,data);
+        if(request==BACKUP_EXPORT||request==BACKUP_IMPORT){if(result==RESULT_OK&&data!=null&&data.getData()!=null)transferSettings(request,data.getData());return;}
+        if(request==ENABLE){if(result==RESULT_OK)ensureBluetooth(pendingDiscover);else pendingDiscover=pendingConnect=false;}if(request==DISCOVER&&result>0)toast("Jetzt das S10 in Windows koppeln.");update();
+    }
     private void unicodeDialog(){
         if(!hid.connected())return;
         EditText pin=new EditText(this);pin.setInputType(InputType.TYPE_CLASS_NUMBER);pin.setHint("Sechsstelliger Code");pin.setFilters(new InputFilter[]{new InputFilter.LengthFilter(6)});
@@ -410,6 +420,11 @@ public final class MainActivity extends Activity {
     }
     private void settings(){
         saveDraft();hideKeyboard();LinearLayout box=column();box.setPadding(u(18),u(8),u(18),u(12));box.setBackgroundColor(card);
+        label(box,"Einstellungen und Anordnungen sichern",16,text,true);
+        button(box,"Sicherung exportieren",()->chooseSettingsFile(true),false);
+        button(box,"Sicherung importieren",()->chooseSettingsFile(false),false);
+        hint(box,"Kachelpositionen, Größen, Sichtbarkeit, Design und Empfindlichkeit. Vor dem Import wird der Inhalt angezeigt.");
+        hint(box,"Bluetooth-Kopplungen, Texte, Codes und die Display-aus-Freigabe werden nicht mitgesichert.");
         slider(box,"Darstellungsgröße","uiScale",100,50,150,()->build());
         LinearLayout reset=row();box.addView(reset);rowButton(reset,"100 %",()->{prefs.edit().putInt("uiScale",100).apply();if(uiScaleBar!=null)uiScaleBar.setProgress(50);build();},false);
         slider(box,"Touchpad-Geschwindigkeit",TOUCHPAD_SPEED,TouchPad.DEFAULT_SPEED_PERCENT,TouchPad.MIN_SPEED_PERCENT,TouchPad.MAX_SPEED_PERCENT,this::applyTouchpadSpeed);
@@ -422,7 +437,75 @@ public final class MainActivity extends Activity {
         Switch off=toggle(box,"Bei Display aus weitersteuern","screenOff",()->{if(prefs.getBoolean("screenOff",false)&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED){prefs.edit().putBoolean("screenOff",false).apply();pendingScreenOff=true;requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATIONS);}else session.setKeepOff(prefs.getBoolean("screenOff",false));});
         hint(box,"Bluetooth bleibt beim App-Wechsel verbunden. Aktive Air-Maus im Display-aus-Modus über die Benachrichtigung stoppen.");
         button(box,"Diagnose ohne Textinhalte",this::diagnostics,false);
-        ScrollView scroll=new ScrollView(this);scroll.addView(box);dialog().setTitle("Einstellungen").setView(scroll).setPositiveButton("Fertig",(d,w)->{saveDraft();build();}).show();
+        ScrollView scroll=new ScrollView(this);scroll.addView(box);settingsDialog=dialog().setTitle("Einstellungen").setView(scroll).setPositiveButton("Fertig",(d,w)->{saveDraft();build();}).show();
+    }
+    private void chooseSettingsFile(boolean exporting){
+        if(backupBusy){toast("Bitte die laufende Sicherung abwarten.");return;}
+        if(editing){toast("Bitte die Anordnung zuerst speichern oder verwerfen.");return;}
+        Intent intent=new Intent(exporting?Intent.ACTION_CREATE_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(exporting?"application/octet-stream":"*/*");
+        if(exporting)intent.putExtra(Intent.EXTRA_TITLE,"AirPit-Einstellungen-"+DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss",Locale.ROOT).withZone(ZoneId.systemDefault()).format(Instant.now())+".airpit");
+        try{startActivityForResult(intent,exporting?BACKUP_EXPORT:BACKUP_IMPORT);if(settingsDialog!=null)settingsDialog.dismiss();}
+        catch(ActivityNotFoundException|SecurityException error){toast("Die Android-Dateiauswahl ist nicht verfügbar.");}
+    }
+    private boolean activeActivity(){return !isFinishing()&&!isDestroyed();}
+    private void transferSettings(int request,Uri uri){
+        if(backupBusy)return;backupBusy=true;
+        final Map<String,?> current=request==BACKUP_EXPORT?prefs.getAll():null;
+        new Thread(()->{
+            try{
+                if(request==BACKUP_EXPORT){
+                    byte[] bytes=SettingsBackup.capture(current,BuildConfig.VERSION_NAME,Instant.now()).encode();
+                    try(OutputStream output=getContentResolver().openOutputStream(uri,"wt")){if(output==null)throw new IOException();output.write(bytes);output.flush();}
+                    main.post(()->{backupBusy=false;if(activeActivity())toast("Sicherung exportiert.");});
+                }else{
+                    final SettingsBackup backup;
+                    try(InputStream input=getContentResolver().openInputStream(uri)){backup=SettingsBackup.read(input);}
+                    main.post(()->{backupBusy=false;if(activeActivity())previewSettingsImport(backup);});
+                }
+            }catch(IOException|RuntimeException error){
+                final String message=request==BACKUP_EXPORT?"Die Sicherung konnte nicht geschrieben werden. Bitte den Speicherort prüfen und erneut exportieren.":"Die Datei konnte nicht als AirPit-Sicherung gelesen werden. Sie muss vollständig und mit dieser AirPit-Version kompatibel sein. Es wurde nichts übernommen.";
+                main.post(()->{backupBusy=false;if(activeActivity())dialog().setTitle(request==BACKUP_EXPORT?"Export fehlgeschlagen":"Import fehlgeschlagen").setMessage(message).setPositiveButton("Schließen",null).show();});
+            }
+        },"AirPit-settings-file").start();
+    }
+    private void previewSettingsImport(SettingsBackup backup){
+        Map<String,Object> values=backup.values;
+        String saved=DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm",Locale.GERMANY).withZone(ZoneId.systemDefault()).format(Instant.parse(backup.createdUtc));
+        StringBuilder summary=new StringBuilder("Gesichert mit AirPit ").append(backup.appVersion).append("\n").append(saved).append("\n\n");
+        summary.append("Design: ").append((Boolean)values.get("dark")?"Dunkel":"Hell").append("\nDarstellungsgröße: ").append(values.get("uiScale")).append(" %\nTouchpad-Geschwindigkeit: ").append(values.get("touchpadSpeed")).append(" %\nAir-Maus-Empfindlichkeit: ").append(values.get("speed")).append(" %\nGlättung: ").append(values.get("smooth")).append(" %\nZitterfilter: ").append(values.get("steady")).append(" %\n");
+        summary.append("Links / rechts: ").append(AXIS_NAMES[(Integer)values.get("gyroHorizontal")]).append("\nHoch / runter: ").append(AXIS_NAMES[(Integer)values.get("gyroVertical")]).append("\nRichtung umgekehrt: ").append((Boolean)values.get("invertX")?"links/rechts":"–").append(" / ").append((Boolean)values.get("invertY")?"hoch/runter":"–").append("\nErklärungen: ").append((Boolean)values.get("help")?"an":"aus").append("\n\nGespeicherte Anordnungen: ").append(backup.layoutCount());
+        for(String key:new TreeSet<>(values.keySet()))if(SettingsBackup.layoutKey(key))summary.append("\n• ").append(backupLayoutName(key));
+        summary.append("\n\nÜbernehmen ersetzt die genannten Einstellungen und enthaltenen Anordnungen. Andere Anordnungen bleiben erhalten. Auf einem anderen Bildschirm wird die Anordnung angepasst.\n\nBluetooth-Kopplungen, Texte, Codes und die Freigabe zur Steuerung bei ausgeschaltetem Display bleiben auf diesem Handy.");
+        AlertDialog preview=dialog().setTitle("Sicherung importieren · Vorschau").setMessage(summary).setPositiveButton("Übernehmen",null).setNegativeButton("Abbrechen",null).create();
+        preview.setOnShowListener(d->preview.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->applySettingsImport(backup,preview)));preview.show();
+    }
+    private String backupLayoutName(String key){
+        if(key.startsWith("layout."))return (key.endsWith("landscape")?"Querformat":"Hochformat")+" · Vorlagenbasis";
+        String page=key.substring(key.lastIndexOf('.')+1);return (key.contains(".landscape.")?"Querformat":"Hochformat")+" · "+(page.equals("full")?"Vollbild":new String[]{"Bedienung","Tastatur","Verbindung"}[Integer.parseInt(page)]);
+    }
+    private void putBackupValue(SharedPreferences.Editor writer,String key,Object value){
+        if(value instanceof Boolean)writer.putBoolean(key,(Boolean)value);else if(value instanceof Integer)writer.putInt(key,(Integer)value);else writer.putString(key,(String)value);
+    }
+    private void applySettingsImport(SettingsBackup backup,AlertDialog preview){
+        if(backupBusy)return;backupBusy=true;saveDraft();session.pauseAll();
+        final Map<String,?> previous=prefs.getAll();
+        preview.setCancelable(false);preview.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);preview.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(false);
+        new Thread(()->{
+            boolean saved=false;
+            try{
+                SharedPreferences.Editor writer=prefs.edit();for(Map.Entry<String,Object> field:backup.values.entrySet())putBackupValue(writer,field.getKey(),field.getValue());saved=writer.commit();
+            }catch(RuntimeException ignored){}
+            if(!saved){
+                // SharedPreferences publishes in memory before disk I/O, even on failure.
+                try{SharedPreferences.Editor rollback=prefs.edit();for(String key:backup.values.keySet())if(previous.containsKey(key))putBackupValue(rollback,key,previous.get(key));else rollback.remove(key);rollback.commit();}catch(RuntimeException ignored){}
+            }
+            final boolean success=saved;
+            main.post(()->{
+                backupBusy=false;if(!activeActivity())return;
+                if(success){preview.dismiss();dark=prefs.getBoolean("dark",true);layout=null;loadedLayoutKey="";session.configure();build();toast("Einstellungen und Anordnungen importiert.");}
+                else{preview.setCancelable(true);preview.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true);preview.getButton(AlertDialog.BUTTON_NEGATIVE).setEnabled(true);toast("Import konnte nicht gespeichert werden. Der bisherige Stand bleibt erhalten.");}
+            });
+        },"AirPit-settings-import").start();
     }
     private void applyTouchpadSpeed(){if(pad!=null)pad.setSpeedPercent(prefs.getInt(TOUCHPAD_SPEED,TouchPad.DEFAULT_SPEED_PERCENT));}
     private MotionAxes motionAxes(){return new MotionAxes(prefs.getInt("gyroHorizontal",MotionAxes.TURN),prefs.getInt("gyroVertical",MotionAxes.FORWARD_TILT));}

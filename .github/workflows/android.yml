@@ -26,6 +26,8 @@ jobs:
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: HID, motion, timeout, cancellation and layout checks
         run: python3 tools/check-core.py
+      - name: Verify release retention safeguards
+        run: python3 tools/check-release-retention.py
       - name: Build current Android source
         run: python3 tools/build.py
       - name: Compare release with current source and check signature
@@ -82,3 +84,8 @@ jobs:
               --notes-file "docs/releases/$AIRPIT_VERSION.md"
           fi
           test "$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)" = "v$AIRPIT_VERSION"
+      - name: Retain the three newest release publications
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AIRPIT_VERSION: ${{ steps.meta.outputs.version }}
+        run: python3 tools/prune-releases.py --latest "v$AIRPIT_VERSION" --apply

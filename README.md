@@ -1,12 +1,28 @@
-# AirPit 0.0.6
+# AirPit 0.0.7
+
+[Download](https://github.com/Tim-Gurke/AirPit/releases/latest) · [Anleitung](docs/ANLEITUNG.md) · [Versionshistorie](docs/VERSIONSHISTORIE.md) · [Prüfbericht](docs/qa/0.0.7.md)
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.6/AirPit-v0.0.6.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.6/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.6.md)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.7/AirPit-v0.0.7.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.7/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.7.md)
+
+| Bedienung · Version 0.0.7 | Einstellungen · Export und Import |
+|---|---|
+| ![AirPit 0.0.7 Bedienung](docs/screenshots/0.0.7-bedienung.png) | ![AirPit 0.0.7 Sicherungseinstellungen](docs/screenshots/0.0.7-einstellungen.png) |
+
+Aktuelle Aufnahmen der signierten App im Android-9-Emulator. Dort ist kein Bluetooth-Gerät vorhanden; die Bilder belegen die Oberfläche, keine echte PC-Verbindung.
+
+## Einstellungen sichern und wiederherstellen
+
+Unter **Einstellungen → Sicherung exportieren** eine `.airpit`-Datei speichern. **Sicherung importieren** öffnet die Android-Dateiauswahl und zeigt vor der Übernahme Design, Darstellungsgröße, Touchpad- und Gyro-Einstellungen sowie die enthaltenen Anordnungen für Seiten und Ausrichtungen. **Abbrechen** übernimmt nichts; erst **Übernehmen** speichert den geprüften Inhalt.
+
+Gesichert werden gespeicherte Positionen, Größen und Sichtbarkeit aller einzelnen Kacheln, einschließlich Touchpad und Vollbild. Enthaltene Anordnungen ersetzen den jeweiligen gespeicherten Stand; andere bleiben erhalten. Bei einer anderen Bildschirmbreite wird die Anordnung wie bisher angepasst und ohne Überlappungen eingebunden. Offene Anordnungsentwürfe zuerst speichern oder verwerfen.
+
+Bluetooth-Kopplungen, PC-Adressen, Codes, Texte und die gerätebezogene Display-aus-Freigabe bleiben auf dem jeweiligen Handy. Fehlerhafte, unvollständige oder nicht unterstützte Dateien werden vollständig abgewiesen. Die Datei lässt sich auf ein zweites Handy übertragen und dort ab AirPit 0.0.7 importieren. [Schritt-für-Schritt-Anleitung](docs/ANLEITUNG.md#sicherung-exportieren-und-importieren).
 
 ## Mit Windows verbinden
 
-1. APK auf dem S10 installieren; 0.0.6 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.5 installieren.
+1. APK auf dem S10 installieren; 0.0.7 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.6 installieren.
 2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
 3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
 4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
