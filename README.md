@@ -1,14 +1,14 @@
-# AirPit 0.0.7
+# AirPit 0.0.8
 
-[Download](https://github.com/Tim-Gurke/AirPit/releases/latest) · [Anleitung](docs/ANLEITUNG.md) · [Versionshistorie](docs/VERSIONSHISTORIE.md) · [Prüfbericht](docs/qa/0.0.7.md)
+[Download](https://github.com/Tim-Gurke/AirPit/releases/latest) · [Anleitung](docs/ANLEITUNG.md) · [Versionshistorie](docs/VERSIONSHISTORIE.md) · [Prüfbericht](docs/qa/0.0.8.md)
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.7/AirPit-v0.0.7.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.7/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.7.md)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.8/AirPit-v0.0.8.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.8/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.8.md)
 
-| Bedienung · Version 0.0.7 | Einstellungen · Export und Import |
+| Anordnen · Raster wie Watt’n’Pit | Kachelgröße direkt und mit Regler |
 |---|---|
-| ![AirPit 0.0.7 Bedienung](docs/screenshots/0.0.7-bedienung.png) | ![AirPit 0.0.7 Sicherungseinstellungen](docs/screenshots/0.0.7-einstellungen.png) |
+| ![AirPit 0.0.8 Anordnungseditor](docs/screenshots/0.0.8-anordnen.png) | ![AirPit 0.0.8 Kachelgröße](docs/screenshots/0.0.8-groesse.png) |
 
 Aktuelle Aufnahmen der signierten App im Android-9-Emulator. Dort ist kein Bluetooth-Gerät vorhanden; die Bilder belegen die Oberfläche, keine echte PC-Verbindung.
 
@@ -16,13 +16,13 @@ Aktuelle Aufnahmen der signierten App im Android-9-Emulator. Dort ist kein Bluet
 
 Unter **Einstellungen → Sicherung exportieren** eine `.airpit`-Datei speichern. **Sicherung importieren** öffnet die Android-Dateiauswahl und zeigt vor der Übernahme Design, Darstellungsgröße, Touchpad- und Gyro-Einstellungen sowie die enthaltenen Anordnungen für Seiten und Ausrichtungen. **Abbrechen** übernimmt nichts; erst **Übernehmen** speichert den geprüften Inhalt.
 
-Gesichert werden gespeicherte Positionen, Größen und Sichtbarkeit aller einzelnen Kacheln, einschließlich Touchpad und Vollbild. Enthaltene Anordnungen ersetzen den jeweiligen gespeicherten Stand; andere bleiben erhalten. Bei einer anderen Bildschirmbreite wird die Anordnung wie bisher angepasst und ohne Überlappungen eingebunden. Offene Anordnungsentwürfe zuerst speichern oder verwerfen.
+Gesichert werden gespeicherte Positionen, Größen und Sichtbarkeit aller einzelnen Kacheln, einschließlich Touchpad und Vollbild. Enthaltene Anordnungen ersetzen den jeweiligen gespeicherten Stand; andere bleiben erhalten. Bei einer anderen Bildschirmbreite wird die Anordnung wie bisher angepasst und ohne Überlappungen eingebunden. Offene Anordnungsentwürfe zuerst speichern oder verwerfen. Die Sicherungsdaten werden vor der Dateiauswahl vorbereitet. Ältere, von AirPit noch lesbare Layoutstände werden nur in der Sicherung normalisiert; die gespeicherten Originale bleiben erhalten.
 
 Bluetooth-Kopplungen, PC-Adressen, Codes, Texte und die gerätebezogene Display-aus-Freigabe bleiben auf dem jeweiligen Handy. Fehlerhafte, unvollständige oder nicht unterstützte Dateien werden vollständig abgewiesen. Die Datei lässt sich auf ein zweites Handy übertragen und dort ab AirPit 0.0.7 importieren. [Schritt-für-Schritt-Anleitung](docs/ANLEITUNG.md#sicherung-exportieren-und-importieren).
 
 ## Mit Windows verbinden
 
-1. APK auf dem S10 installieren; 0.0.7 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.6 installieren.
+1. APK auf dem S10 installieren; 0.0.8 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.7 installieren.
 2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
 3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
 4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
@@ -46,7 +46,7 @@ Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen
 | Scrollen | Mit zwei Fingern oder den Scrolltasten, auch länger gedrückt |
 | Vollbild | Große Touchpad-Fläche mit Maus-/Scrolltasten und Verbindungstaste |
 | Anordnen | Einzelne Klickflächen am feinen Raster ausrichten; beim Einfügen rücken Nachbarn nach unten |
-| Größe und Position | Im Bearbeitungsmodus das einzelne Element antippen; Position, Breite und Höhe ändern |
+| Größe und Position | Ecke unten rechts ziehen oder Element antippen; Größenregler und genaue Zahlen nutzen |
 | Elemente | Im Bearbeitungsmodus jede einzelne Fläche aus-/einblenden |
 | Speichern & fertig | Alle Entwürfe der laufenden Bearbeitung übernehmen |
 | Änderungen verwerfen | Gespeicherte Positionen, Größen und Sichtbarkeit wiederherstellen |
@@ -54,7 +54,7 @@ Android 9 oder neuer; die ROM muss Bluetooth-HID als Eingabegerät unterstützen
 
 Hoch- und Querformat sowie Bedienung, Tastatur, Verbindung und Vollbild besitzen eigene gespeicherte Anordnungen. Jede Klickfläche ist unabhängig; es gibt keine Bindung an feste Zeilen oder Gruppen. Auch Touchpad, Texteingabe, Hinweise und Kopfzeile sind Teil derselben frei nutzbaren Fläche. Am Rand wird beim Ziehen weitergescrollt. Die Touchpad-Höhe wird unabhängig von der Darstellungsgröße eingestellt.
 
-Im Anordnungsmodus zeigt ein feines Punktraster Positionen im Abstand von 4 dp; stärkere Hilfslinien liegen alle 16 dp. Verschobene Positionen rasten ein. Reicht ein Zwischenraum nicht aus, rücken betroffene Nachbarn nach unten und schaffen Platz – bei Bedarf über mehrere Reihen. Unbetroffene Spalten behalten ihre Position. Es entstehen keine Überlappungen.
+Der Anordnungsmodus übernimmt die Rasterabstufungen und den Größen-Griff von Watt’n’Pit: 24 horizontale Schritte und halbe Zeilen. Eine Kachel direkt ziehen, um sie gerade auszurichten; die Ecke unten rechts ziehen, um sie zu vergrößern oder zu verkleinern. Beim Antippen bieten Größenregler und genaue Zahlen dieselben Änderungen an. Die bisherigen 4-dp-Schritte werden beim Bearbeiten durch dieses gröbere Raster ersetzt. Gespeicherte Positionen bleiben bis zur eigenen Bearbeitung erhalten. Reicht ein Zwischenraum nicht aus, rücken betroffene Nachbarn nach unten und schaffen Platz – bei Bedarf über mehrere Reihen. Unbetroffene Spalten behalten ihre Position. Es entstehen keine Überlappungen.
 
 Die Vorschau startet bei jeder Bewegung von der ursprünglichen Anordnung des Ziehvorgangs. Beim Wegziehen rücken Nachbarn deshalb wieder zurück. Ein Abbruch stellt alle vorherigen Positionen wieder her. Beim Wiedereinblenden und beim Ändern der Position oder Größe kann ebenfalls Platz geschaffen werden. Vorhandene gespeicherte Anordnungen werden beim Öffnen nicht automatisch neu ausgerichtet. Ein-/ausblenden und Vorlagen ändern nur den Entwurf. Erst **Speichern & fertig** übernimmt die gesamte laufende Bearbeitung und bestätigt **Anordnung gespeichert**. **Änderungen verwerfen** stellt den gespeicherten Stand wieder her. Bei Zurück mit offenen Änderungen stehen **Speichern**, **Verwerfen** und **Weiter bearbeiten** zur Auswahl. Entwürfe bleiben beim Drehen des Handys und beim Wechsel der bearbeiteten Seite erhalten.
 

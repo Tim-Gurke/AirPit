@@ -44,8 +44,8 @@ Bei fehlendem Sensor bleibt die Air-Maus deaktiviert. Die Steuerung pausiert nor
 ## Kacheln anordnen und ihre Größe ändern
 
 1. Auf der gewünschten Seite **Anordnen** wählen. Die Steuerung am PC pausiert während der Bearbeitung.
-2. Eine einzelne Fläche ziehen. Das sichtbare Raster hat 4 dp Abstand; die Position rastet ein. Bei zu wenig Platz rücken andere Flächen nach unten, auch über mehrere Reihen. Überlappungen werden verhindert.
-3. Ein Element antippen, um **Links**, **Oben**, **Breite** und **Höhe** einzutragen. **Übernehmen** aktualisiert die Vorschau, speichert aber noch nicht die gesamte Anordnung.
+2. Eine einzelne Fläche ziehen. Das Raster nutzt dieselben Abstufungen wie Watt’n’Pit: 24 horizontale Schritte und halbe Zeilen. Die Position rastet ein. Bei zu wenig Platz rücken andere Flächen nach unten, auch über mehrere Reihen. Überlappungen werden verhindert.
+3. Die Ecke **unten rechts** ziehen, um die Größe direkt zu ändern. Oder ein Element antippen: **Breite** und **Höhe** mit den Reglern einstellen oder **Links**, **Oben**, **Breite** und **Höhe** genau eintragen. **Übernehmen** aktualisiert die Vorschau, speichert aber noch nicht die gesamte Anordnung.
 4. Unter **Elemente** einzelne Flächen ein-/ausblenden. Unter **Vorlagen** eine Vorlage oder den Standard wählen. Über **Seite** auch andere Seiten und Vollbild bearbeiten; beim Drehen bleibt die Bearbeitung erhalten.
 5. **Speichern & fertig** übernimmt alle Änderungen dieser Bearbeitung. **Änderungen verwerfen** stellt den vorher gespeicherten Stand wieder her.
 
@@ -54,6 +54,8 @@ Bei Zurück mit offenen Änderungen zwischen **Speichern**, **Verwerfen** und **
 ## Sicherung exportieren und importieren
 
 ### Export
+
+Die App prüft und erstellt die Sicherung vor der Dateiauswahl. Bei einem Datenfehler bleibt die Auswahl geschlossen; die angezeigte Anordnung gegebenenfalls öffnen und erneut speichern.
 
 1. Offene Änderungen an der Anordnung mit **Speichern & fertig** abschließen oder verwerfen.
 2. **Einstellungen → Sicherung exportieren** wählen.
@@ -91,6 +93,6 @@ Für den normalen Tastaturmodus am PC **Deutsch (Deutschland)** wählen und Fest
 
 **Einstellungen → Erklärungen anzeigen** blendet zusätzliche Hinweise ein. Unter **Diagnose ohne Textinhalte** stehen Betriebsereignisse und Fehler; die Diagnose lässt sich bei Bedarf kopieren. Sie enthält keine eingegebenen Texte oder Codes.
 
-Wenn keine Verbindung entsteht, zuerst Bluetooth, Gerätefreigaben und die Windows-Kopplung prüfen; danach unter Verbindung Bluetooth erneut starten. Ein unbekannter Verbindungszustand bedeutet keine bestätigte Eingabe am PC. Die konkreten Bluetooth-Eigenschaften und das Verhalten bei ausgeschaltetem Display hängen auch von der Handy-ROM ab. [Prüfgrenzen dieser Version](qa/0.0.7.md).
+Wenn keine Verbindung entsteht, zuerst Bluetooth, Gerätefreigaben und die Windows-Kopplung prüfen; danach unter Verbindung Bluetooth erneut starten. Ein unbekannter Verbindungszustand bedeutet keine bestätigte Eingabe am PC. Die konkreten Bluetooth-Eigenschaften und das Verhalten bei ausgeschaltetem Display hängen auch von der Handy-ROM ab. [Prüfgrenzen dieser Version](qa/0.0.8.md).
 
 © 2026 Tim Weißbach · AirPit

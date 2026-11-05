@@ -4,6 +4,7 @@
 
 | Version | Änderungen | Details |
 |---|---|---|
+| 0.0.8 | Raster und Größen-Griff wie Watt’n’Pit, direkte Größenänderung, Größenregler, erhaltene Anker und gespeicherte Anordnungen; Export mit vorbereiteter Momentaufnahme und normalisierten älteren Layouts | [Versionshinweise](releases/0.0.8.md) |
 | 0.0.7 | Einstellungen und gespeicherte Anordnungen exportieren und nach Vorschau importieren; vollständige Dateiprüfung, Schutz lokaler Kopplungen; ergänzte Anleitung und Versionshistorie | [Versionshinweise](releases/0.0.7.md) |
 | 0.0.6 | Eigene Touchpad-Geschwindigkeit von 25–300 %, gespeicherter Wert und Rückstellung auf 100 %, unabhängig vom Gyro | [Versionshinweise](releases/0.0.6.md) |
 | 0.0.5 | Feines 4-dp-Raster, Ausrichtungshilfen, Einfügen mit Verschieben anderer Kacheln nach unten, vollständiger Abbruch einer Verschiebung | [Versionshinweise](releases/0.0.5.md) |

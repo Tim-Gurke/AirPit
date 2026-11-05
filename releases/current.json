@@ -1,9 +1,9 @@
 {
-  "version": "0.0.7",
-  "versionCode": 7,
-  "apk": "releases/AirPit-v0.0.7.apk",
-  "sha256": "a531ccdef20c8c20f29d186768ab173a84c1e0e0176fd3124efc4769304257a3",
-  "source_sha256": "75356333c48adbc932e09dbf139089cd135cd779b42e4341982f6f18809a81e3",
+  "version": "0.0.8",
+  "versionCode": 8,
+  "apk": "releases/AirPit-v0.0.8.apk",
+  "sha256": "d6df52a117fa123548c3422651c87896cb81525612eb6fc1ec7bb2bf59243415",
+  "source_sha256": "8e8137c14aed0c88649b50b38f971c3df0bc5d73e00408b919bdab912e0f4aae",
   "assets": [
     {
       "path": "releases/AirPit-Unicode-Windows.zip",
@@ -11,6 +11,6 @@
     }
   ],
   "minimumAndroid": "9",
-  "verification": "146 HID/keyboard/motion checks; 426 transport checks; 2938 layout/transaction checks; 23909 grid/insertion checks; 242 backup round-trip/privacy/validation checks; release-retention safeguards; Android compilation and signed-source comparison; CI Windows-helper verification",
-  "hardwareTest": "S10/Windows Bluetooth, pointer feel and Samsung/cloud file-provider behavior require physical testing"
+  "verification": "146 HID/keyboard/motion checks; 426 transport checks; 2938 layout/transaction checks; 23731 grid/insertion checks; 248 backup checks; 29741 Watt-grid/direct-resize/preservation checks; Android UI checks; signature/source comparison; CI Windows helper",
+  "hardwareTest": "S10/Windows and the Samsung/cloud document provider need physical testing; exact S10 export error not reproduced in the emulator"
 }

@@ -5,7 +5,7 @@ import java.util.*;
 
 /** Individual control rectangles. Coordinates are density-independent, never text drafts. */
 public final class FreeLayout {
-    public static final int GAP=3,MAX_Y=16000,GRID=4;
+    public static final int GAP=3,MAX_Y=16000;
     public static final class Item {
         public final String id;
         public int x,y,width,height;
@@ -42,19 +42,24 @@ public final class FreeLayout {
         if(!canPlace(id,x,y,w,h))return false;
         Item r=item(id);r.x=x;r.y=y;r.width=w;r.height=h;return true;
     }
-    public static int snap(int value){return (int)Math.min(Integer.MAX_VALUE/GRID*(long)GRID,((Math.max(0L,value)+GRID/2)/GRID)*GRID);}
-    public static int snapBounded(int value,int maximum){return Math.min(snap(value),Math.max(0,maximum/GRID*GRID));}
-    private static int nextGrid(int value){return (int)(((long)value+GRID-1)/GRID*GRID);}
+    public LayoutGrid grid(){return new LayoutGrid(width);}
     /** Preview from an unchanged drag baseline: fix the inserted item, push conflicts down. */
     public FreeLayout insertionPreview(String id,int x,int y,int w,int h){
+        return preview(id,x,y,w,h,true);
+    }
+    /** Resizing keeps the original anchor, including older positions between grid lines. */
+    public FreeLayout resizePreview(String id,int w,int h){
+        Item old=item(id);return old==null?null:preview(id,old.x,old.y,w,h,false);
+    }
+    private FreeLayout preview(String id,int x,int y,int w,int h,boolean snapPosition){
         Item old=item(id);if(old==null||!old.visible)return null;
         Item requested=new Item(id,x,y,w,h);if(!inside(requested))return null;
-        FreeLayout result=copy();Item inserted=result.item(id);
-        inserted.x=snapBounded(x,width-w);inserted.y=snapBounded(y,MAX_Y-h);inserted.width=w;inserted.height=h;
+        LayoutGrid grid=grid();FreeLayout result=copy();Item inserted=result.item(id);
+        inserted.x=snapPosition?grid.snapX(x,width-w):x;inserted.y=snapPosition?grid.snapY(y,MAX_Y-h):y;inserted.width=w;inserted.height=h;
         // A valid gap below an older, unaligned item must not snap upward into it.
         int above=0;
         for(Item i:result.items.values())if(i.visible&&!i.id.equals(id)&&(long)i.y+i.height+GAP<=y&&inserted.x<i.x+i.width+GAP&&inserted.x+inserted.width+GAP>i.x)above=Math.max(above,i.y+i.height+GAP);
-        inserted.y=Math.max(inserted.y,nextGrid(above));if(!result.inside(inserted))return null;
+        if(snapPosition)inserted.y=Math.max(inserted.y,grid.below(above));if(!result.inside(inserted))return null;
         List<Item> rest=new ArrayList<>();
         for(Item i:result.items.values())if(i.visible&&!i.id.equals(id))rest.add(i);
         // Original vertical order is stable; only affected items and their successors move.
@@ -65,7 +70,7 @@ public final class FreeLayout {
             do{
                 int below=i.y;conflict=false;
                 for(Item p:placed)if(intersects(i,p)){below=Math.max(below,p.y+p.height+GAP);conflict=true;}
-                if(conflict){i.y=nextGrid(below);if(!result.inside(i))return null;}
+                if(conflict){i.y=grid.below(below);if(!result.inside(i))return null;}
             }while(conflict);
             placed.add(i);
         }

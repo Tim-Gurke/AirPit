@@ -34,7 +34,7 @@ public final class LayoutChecks {
         check(FreeLayout.decode(saved.encode()).encode().equals(saved.encode()),"Geometry and visibility survive reload");
         saved=layout();FreeLayout.Item hidden=new FreeLayout.Item("button.Ziehen",12,12,100,48);hidden.visible=false;saved.items.put(hidden.id,hidden);
         check(saved.show(hidden.id,true)&&geometryValid(saved),"Showing a button finds free space instead of overlapping");
-        check(hidden.x==12&&hidden.y==12&&saved.item("button.Linksklick").y>12,"Showing a button inserts it at its old slot and pushes the occupant down");
+        check(hidden.x==15&&hidden.y==13&&saved.item("button.Linksklick").y>13,"Showing a button inserts at the nearest Watt grid slot and pushes the occupant down");
         FreeLayout scaled=saved.copy();scaled.adapt(720,150);check(scaled.valid()&&geometryValid(scaled),"Scale and width changes preserve non-overlap");
         check(scaled.item("pad").height==saved.item("pad").height,"Touchpad height remains independent of text scaling");
         FreeLayout broken=layout();broken.item("pad").x=-100;broken.item("pad").y=0;broken.item("pad").width=10000;broken.repair();

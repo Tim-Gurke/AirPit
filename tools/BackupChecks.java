@@ -29,6 +29,14 @@ public final class BackupChecks {
         Map<String,Object> merged=restored.mergedWith(current);check(merged.get("lastHost").equals("LOCAL-PC")&&!((Boolean)merged.get("screenOff")),"Local pairing and opt-in preserved");check(merged.get("untouched").equals("local"),"Unrelated fields retained");check(current.size()==4,"Preview does not mutate current state");
         SettingsBackup defaults=SettingsBackup.capture(Collections.emptyMap(),"0.0.7",Instant.EPOCH);check(read(defaults.encode()).layoutCount()==0,"Fresh install backup valid");
         Map<String,Object> partial=defaults.mergedWith(original);check(partial.get("freeLayout.v1.portrait.0").equals(original.get("freeLayout.v1.portrait.0")),"Absent layouts remain untouched");
+        Map<String,Object> older=new LinkedHashMap<>(original);String prior=(String)older.get("freeLayout.v1.portrait.0");older.put("freeLayout.v1.portrait.0",prior+"    ");older.put("layout.portrait","v1;pad:4:40:1;");
+        SettingsBackup normalized=SettingsBackup.capture(older,"0.0.8",Instant.EPOCH);SettingsBackup normalizedFile=read(normalized.encode());
+        check(FreeLayout.decode((String)normalizedFile.values.get("freeLayout.v1.portrait.0")).valid(),"Older readable layout exports in canonical form");
+        check(((String)normalizedFile.values.get("layout.portrait")).contains("pad:4:80:1;"),"Legacy template uses the same normalization as the visible app");
+        check(older.get("freeLayout.v1.portrait.0").equals(prior+"    "),"Export normalization does not overwrite the user's stored positions or XML indentation");
+        older.put("touchpadSpeed",26);check(normalized.values.get("touchpadSpeed").equals(237),"Prepared export is an independent point-in-time snapshot");
+        check(read(normalized.encode()).values.equals(normalized.values),"Prepared snapshot stays valid after source preferences change");
+        older.put("freeLayout.v1.portrait.0",prior+"\n");check(read(SettingsBackup.capture(older,"0.0.8",Instant.EPOCH).encode()).values.get("freeLayout.v1.portrait.0").equals(normalized.values.get("freeLayout.v1.portrait.0")),"Extra empty lines and XML indentation normalize to the same saved arrangement");
         for(String key:new String[]{"touchpadSpeed","uiScale","speed","smooth","steady","gyroHorizontal","gyroVertical"})for(String bad:new String[]{"-1","301","1.5","abc","2147483648","01"}){Properties p=properties(file);p.setProperty("preference."+key,bad);rejected(bytes(p),"Reject bad number "+key);}
         for(String key:new String[]{"dark","help","invertX","invertY"}){Properties p=properties(file);p.setProperty("preference."+key,"yes");rejected(bytes(p),"Strict boolean");}
         Properties equalAxes=properties(file);equalAxes.setProperty("preference.gyroVertical","1");rejected(bytes(equalAxes),"Duplicate axes");

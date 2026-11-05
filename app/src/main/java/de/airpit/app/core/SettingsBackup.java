@@ -32,14 +32,18 @@ public final class SettingsBackup {
             Object raw=preferences.get(key);if(!(raw instanceof String))throw invalid();
             String value=(String)raw;
             if(key.startsWith("freeLayout.")){
-                FreeLayout layout=checkedLayout(value);
+                // Export the same repaired in-memory layout that the app displays.
+                // The on-device decoder deliberately accepts older noncanonical records.
+                FreeLayout layout=FreeLayout.decode(value);
+                if(layout==null||layout.items.isEmpty()||layout.width>8192)throw new IllegalArgumentException("Die gespeicherte Anordnung „"+layoutName(key)+"“ konnte nicht gelesen werden. Bitte diese Anordnung öffnen und erneut speichern.");
                 // Paired-PC buttons contain Bluetooth addresses and belong to this phone.
                 layout.items.keySet().removeIf(id->id.startsWith("pc."));value=layout.encode();
-            }
+            }else{if(!value.startsWith("v1;"))throw new IllegalArgumentException("Die gespeicherte Vorlagenbasis konnte nicht gelesen werden.");value=TileLayout.decode(value,key.endsWith("landscape")).encode();}
             safe.put(key,value);
         }
         validate(safe,false);return new SettingsBackup(checkedVersion(version),created.toString(),safe);
     }
+    private static String layoutName(String key){String page=key.substring(key.lastIndexOf('.')+1);return (key.contains("landscape")?"Querformat":"Hochformat")+" · "+(page.equals("full")?"Vollbild":new String[]{"Bedienung","Tastatur","Verbindung"}[Integer.parseInt(page)]);}
     public byte[] encode() throws IOException {
         Properties properties=new Properties();properties.setProperty("airpit.format","de.airpit.settings");properties.setProperty("airpit.version","1");
         properties.setProperty("airpit.appVersion",appVersion);properties.setProperty("airpit.createdUtc",createdUtc);

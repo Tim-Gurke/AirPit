@@ -223,6 +223,9 @@ public final class MainActivity extends Activity {
         FreeBoard board=new FreeBoard(this,active,new LinkedHashMap<>(individualViews),editing,accent,new FreeBoard.Editor(){
             public void options(String id){elementOptions(id);}
             public void changed(String message){if(editMessage!=null)editMessage.setText(message);}
+            public String name(String id){return elementName(id);}
+            public int minWidth(String id){return minimumWidth(id);}
+            public int minHeight(String id){return minimumHeight(id);}
         });
         root.removeAllViews();editMessage=null;if(editing)editorToolbar();
         pageScroll=new ScrollView(this);pageScroll.setFillViewport(true);pageScroll.setClipToPadding(false);
@@ -240,7 +243,7 @@ public final class MainActivity extends Activity {
         LinearLayout actions=row();bar.addView(actions);editorButton(actions,"Speichern & fertig",this::saveArrangement,true);editorButton(actions,"Änderungen verwerfen",this::discardArrangement,false);
         LinearLayout tools=row();bar.addView(tools);editorButton(tools,"Elemente",this::elementSelection,false);editorButton(tools,"Vorlagen",this::presets,false);
         editorButton(tools,"Seite",()->dialog().setTitle("Anordnung bearbeiten").setItems(new String[]{"Bedienung","Tastatur","Verbindung","Vollbild"},(d,which)->{saveDraft();fullscreen=which==3;if(which<3)tab=which;build();}).setNegativeButton("Zurück",null).show(),false);
-        editMessage=hint(bar,"Feines Raster · Ziehen: einfügen · Tippen: Größe und Position");editMessage.setTextSize(11);editMessage.setMaxLines(2);editMessage.setMinLines(2);editMessage.setEllipsize(TextUtils.TruncateAt.END);
+        editMessage=hint(bar,"Ziehen: am Raster verschieben · Ecke unten rechts: Größe ändern");editMessage.setTextSize(11);editMessage.setMaxLines(2);editMessage.setMinLines(2);editMessage.setEllipsize(TextUtils.TruncateAt.END);
     }
     private Button editorButton(LinearLayout row,String name,Runnable action,boolean primary){Button b=rowButton(row,name,action,primary);b.setTextSize(12);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(42),1);p.setMargins(dp(2),dp(2),dp(2),0);b.setLayoutParams(p);return b;}
     private void saveArrangement(){
@@ -277,21 +280,32 @@ public final class MainActivity extends Activity {
         LinearLayout field=column();LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,-2,1);p.setMargins(dp(3),0,dp(3),0);row.addView(field,p);
         label(field,title,12,muted,false);EditText value=new EditText(this);value.setTextColor(text);value.setSingleLine(true);value.setTextSize(15);value.setInputType(InputType.TYPE_CLASS_NUMBER);value.setText(String.valueOf(number));value.setSelectAllOnFocus(true);field.addView(value,new LinearLayout.LayoutParams(-1,dp(44)));return value;
     }
+    private int minimumWidth(String id){View control=individualViews.get(id);return control==pad||control instanceof EditText?80:control instanceof Button||control instanceof ImageButton?32:10;}
+    private int minimumHeight(String id){
+        View control=individualViews.get(id);int min=control==pad?80:control instanceof EditText?48:control instanceof Button||control instanceof ImageButton?Math.max(32,Math.round(40*scale)):Math.max(10,Math.round(12*scale));
+        if(control instanceof Button){android.graphics.Paint.FontMetricsInt metrics=((Button)control).getPaint().getFontMetricsInt();float density=getResources().getDisplayMetrics().density;min=Math.max(min,(int)Math.ceil((2*(metrics.descent-metrics.ascent)+control.getPaddingTop()+control.getPaddingBottom())/density));}return min;
+    }
+    private void geometrySlider(LinearLayout parent,String title,EditText field,boolean horizontal,int minimum,int maximum){
+        de.airpit.app.core.LayoutGrid grid=freeBoard.layout.grid();label(parent,title,12,muted,false);SeekBar bar=new SeekBar(this);bar.setMax(horizontal?24:maximum/grid.row);bar.setProgress(horizontal?Math.round(Integer.parseInt(field.getText().toString())*24f/grid.width):Math.round(Integer.parseInt(field.getText().toString())/(float)grid.row));bar.setProgressTintList(ColorStateList.valueOf(accent));bar.setThumbTintList(ColorStateList.valueOf(accent));parent.addView(bar,new LinearLayout.LayoutParams(-1,dp(40)));
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar b,int value,boolean user){if(user)field.setText(String.valueOf(Math.max(minimum,Math.min(maximum,horizontal?grid.x(value):value*grid.row))));}public void onStartTrackingTouch(SeekBar b){}public void onStopTrackingTouch(SeekBar b){}});
+        field.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int a,int n,int z){}public void onTextChanged(CharSequence s,int a,int b,int c){try{int value=Integer.parseInt(s.toString());bar.setProgress(horizontal?Math.round(value*24f/grid.width):Math.round(value/(float)grid.row));}catch(NumberFormatException ignored){}}public void afterTextChanged(Editable e){}});
+    }
     private void elementOptions(String id){
         if(!editing||freeBoard==null)return;FreeLayout.Item item=freeBoard.layout.item(id);if(item==null)return;
         LinearLayout box=column();box.setPadding(dp(12),dp(4),dp(12),dp(8));LinearLayout position=row(),size=row();box.addView(position);box.addView(size);
         EditText x=geometryField(position,"Links",item.x),y=geometryField(position,"Oben",item.y),width=geometryField(size,"Breite",item.width),height=geometryField(size,"Höhe",item.height);
-        hint(box,"Positionen rasten am Raster ein. Andere Elemente rücken bei Bedarf nach unten. Erst „Speichern & fertig“ übernimmt die Änderungen.");
-        AlertDialog.Builder builder=dialog().setTitle(elementName(id)).setView(box).setPositiveButton("Übernehmen",null).setNegativeButton("Zurück",null);
+        geometrySlider(box,"Breite am Raster",width,true,Math.min(minimumWidth(id),freeBoard.layout.width-item.x),freeBoard.layout.width-item.x);
+        geometrySlider(box,"Höhe am Raster",height,false,minimumHeight(id),Math.min(FreeLayout.MAX_Y-item.y,Math.max(item.height,freeBoard.layout.grid().row*36)));
+        hint(box,"Auch direkt an der Ecke unten rechts vergrößern oder verkleinern. Andere Elemente rücken bei Bedarf nach unten. Erst „Speichern & fertig“ übernimmt die Anordnung.");
+        ScrollView scroll=new ScrollView(this);scroll.addView(box);AlertDialog.Builder builder=dialog().setTitle(elementName(id)).setView(scroll).setPositiveButton("Übernehmen",null).setNegativeButton("Zurück",null);
         if(!requiredElement(id))builder.setNeutralButton("Ausblenden",(d,w)->{freeBoard.layout.show(id,false);freeBoard.refresh();});
         layoutDialog=builder.create();layoutDialog.setOnShowListener(d->layoutDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
             try{
                 int nx=Integer.parseInt(x.getText().toString()),ny=Integer.parseInt(y.getText().toString()),nw=Integer.parseInt(width.getText().toString()),nh=Integer.parseInt(height.getText().toString());
-                View control=individualViews.get(id);int minW=control==pad?80:control instanceof EditText?80:control instanceof Button||control instanceof ImageButton?32:10;
-                int minH=control==pad?80:control instanceof EditText?48:control instanceof Button||control instanceof ImageButton?Math.max(32,Math.round(40*scale)):Math.max(10,Math.round(12*scale));
-                if(control instanceof Button){android.graphics.Paint.FontMetricsInt metrics=((Button)control).getPaint().getFontMetricsInt();float density=getResources().getDisplayMetrics().density;minH=Math.max(minH,(int)Math.ceil((2*(metrics.descent-metrics.ascent)+control.getPaddingTop()+control.getPaddingBottom())/density));}
+                int minW=minimumWidth(id),minH=minimumHeight(id);
                 if((nw!=item.width||nh!=item.height)&&(nw<minW||nh<minH)){toast("Mindestens "+minW+" × "+minH+" für dieses Element.");return;}
-                if(!freeBoard.layout.insert(id,nx,ny,nw,nh)){toast("Die Position liegt außerhalb der Fläche oder am unteren Rand ist kein Platz mehr.");return;}
+                FreeLayout next=nx==item.x&&ny==item.y?freeBoard.layout.resizePreview(id,nw,nh):freeBoard.layout.insertionPreview(id,nx,ny,nw,nh);
+                if(next==null){toast("Die Position liegt außerhalb der Fläche oder am unteren Rand ist kein Platz mehr.");return;}freeBoard.layout.applyFrom(next);
                 freeBoard.refresh();if(editMessage!=null)editMessage.setText("Am Raster eingefügt · noch nicht gespeichert.");layoutDialog.dismiss();
             }catch(NumberFormatException error){toast("Bitte gültige ganze Zahlen eingeben.");}
         }));layoutDialog.show();
@@ -393,7 +407,7 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int request,int result,Intent data){
         super.onActivityResult(request,result,data);
-        if(request==BACKUP_EXPORT||request==BACKUP_IMPORT){if(result==RESULT_OK&&data!=null&&data.getData()!=null)transferSettings(request,data.getData());return;}
+        if(request==BACKUP_EXPORT||request==BACKUP_IMPORT){if(result==RESULT_OK&&data!=null&&data.getData()!=null)transferSettings(request,data.getData());else if(request==BACKUP_EXPORT)pendingExportFile().delete();return;}
         if(request==ENABLE){if(result==RESULT_OK)ensureBluetooth(pendingDiscover);else pendingDiscover=pendingConnect=false;}if(request==DISCOVER&&result>0)toast("Jetzt das S10 in Windows koppeln.");update();
     }
     private void unicodeDialog(){
@@ -442,20 +456,39 @@ public final class MainActivity extends Activity {
     private void chooseSettingsFile(boolean exporting){
         if(backupBusy){toast("Bitte die laufende Sicherung abwarten.");return;}
         if(editing){toast("Bitte die Anordnung zuerst speichern oder verwerfen.");return;}
+        if(!exporting){launchSettingsPicker(false);return;}
+        backupBusy=true;final Map<String,?> current=prefs.getAll();
+        new Thread(()->{
+            try{
+                byte[] bytes=SettingsBackup.capture(current,BuildConfig.VERSION_NAME,Instant.now()).encode();
+                try(OutputStream output=new FileOutputStream(pendingExportFile())){output.write(bytes);}
+                main.post(()->{backupBusy=false;if(activeActivity())launchSettingsPicker(true);});
+            }catch(IOException|RuntimeException error){
+                pendingExportFile().delete();session.record("Sicherung vorbereiten fehlgeschlagen · "+error.getClass().getSimpleName());
+                String detail=error instanceof IllegalArgumentException?error.getMessage():"Die Sicherungsdaten konnten nicht vorbereitet werden. Bitte freien Speicher prüfen und erneut versuchen.";
+                main.post(()->{backupBusy=false;if(activeActivity())dialog().setTitle("Sicherung nicht vorbereitet").setMessage(detail).setPositiveButton("Schließen",null).show();});
+            }
+        },"AirPit-settings-prepare").start();
+    }
+    private File pendingExportFile(){return new File(getFilesDir(),"pending-settings-export.airpit");}
+    private void launchSettingsPicker(boolean exporting){
         Intent intent=new Intent(exporting?Intent.ACTION_CREATE_DOCUMENT:Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(exporting?"application/octet-stream":"*/*");
         if(exporting)intent.putExtra(Intent.EXTRA_TITLE,"AirPit-Einstellungen-"+DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss",Locale.ROOT).withZone(ZoneId.systemDefault()).format(Instant.now())+".airpit");
         try{startActivityForResult(intent,exporting?BACKUP_EXPORT:BACKUP_IMPORT);if(settingsDialog!=null)settingsDialog.dismiss();}
-        catch(ActivityNotFoundException|SecurityException error){toast("Die Android-Dateiauswahl ist nicht verfügbar.");}
+        catch(ActivityNotFoundException|SecurityException error){if(exporting)pendingExportFile().delete();toast("Die Android-Dateiauswahl ist nicht verfügbar.");}
     }
     private boolean activeActivity(){return !isFinishing()&&!isDestroyed();}
     private void transferSettings(int request,Uri uri){
         if(backupBusy)return;backupBusy=true;
-        final Map<String,?> current=request==BACKUP_EXPORT?prefs.getAll():null;
         new Thread(()->{
+            boolean writing=false;
             try{
                 if(request==BACKUP_EXPORT){
-                    byte[] bytes=SettingsBackup.capture(current,BuildConfig.VERSION_NAME,Instant.now()).encode();
-                    try(OutputStream output=getContentResolver().openOutputStream(uri,"wt")){if(output==null)throw new IOException();output.write(bytes);output.flush();}
+                    File snapshot=pendingExportFile();if(!snapshot.isFile()||snapshot.length()==0||snapshot.length()>SettingsBackup.MAX_BYTES)throw new IOException();writing=true;
+                    // CREATE_DOCUMENT creates a new file. Plain write also works with
+                    // document providers that do not implement the optional truncate mode.
+                    try(InputStream input=new FileInputStream(snapshot);OutputStream output=getContentResolver().openOutputStream(uri,"w")){if(output==null)throw new IOException();byte[] bytes=new byte[8192];int n;while((n=input.read(bytes))!=-1)output.write(bytes,0,n);output.flush();}
+                    snapshot.delete();
                     main.post(()->{backupBusy=false;if(activeActivity())toast("Sicherung exportiert.");});
                 }else{
                     final SettingsBackup backup;
@@ -463,7 +496,8 @@ public final class MainActivity extends Activity {
                     main.post(()->{backupBusy=false;if(activeActivity())previewSettingsImport(backup);});
                 }
             }catch(IOException|RuntimeException error){
-                final String message=request==BACKUP_EXPORT?"Die Sicherung konnte nicht geschrieben werden. Bitte den Speicherort prüfen und erneut exportieren.":"Die Datei konnte nicht als AirPit-Sicherung gelesen werden. Sie muss vollständig und mit dieser AirPit-Version kompatibel sein. Es wurde nichts übernommen.";
+                session.record((request==BACKUP_EXPORT?"Sicherung schreiben":"Sicherung lesen")+" fehlgeschlagen · "+error.getClass().getSimpleName());
+                final String message=request==BACKUP_EXPORT?(writing?"Die vorbereitete Sicherung konnte nicht in die ausgewählte Datei geschrieben werden. Bitte einen anderen Speicherort versuchen; eine unvollständige Datei nicht verwenden.":"Die vorbereitete Sicherung ist nicht mehr verfügbar. Bitte den Export erneut starten."):"Die Datei konnte nicht als AirPit-Sicherung gelesen werden. Sie muss vollständig und mit dieser AirPit-Version kompatibel sein. Es wurde nichts übernommen.";
                 main.post(()->{backupBusy=false;if(activeActivity())dialog().setTitle(request==BACKUP_EXPORT?"Export fehlgeschlagen":"Import fehlgeschlagen").setMessage(message).setPositiveButton("Schließen",null).show();});
             }
         },"AirPit-settings-file").start();
