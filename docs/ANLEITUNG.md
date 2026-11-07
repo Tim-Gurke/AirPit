@@ -39,6 +39,8 @@ Mit dem PC verbinden und **Air-Maus einschalten** wählen. Das Handy leicht dreh
 
 Unter **Einstellungen → Bewegungsachsen** für links/rechts und hoch/runter die gewünschte Bewegung wählen: **Drehen**, **Seitlich neigen / schwenken** oder **Vor / zurück neigen**. Seitlich neigen bedeutet, die linke oder rechte Handykante abzusenken. Beide Richtungen nutzen unterschiedliche Achsen; eine schon belegte Achse tauscht die Zuordnung. **Achsen tauschen** wechselt beide direkt. Richtungsumkehr, **Air-Maus-Empfindlichkeit**, **Glättung** und **Zitterfilter** sind separat einstellbar.
 
+Seit 0.0.9 reagiert die Gyro-Glättung bei gleichem Reglerwert schneller: Der einstellbare Zeitbereich beträgt rund 4–49 ms, bei Standardwert 35 rund 20 ms. Weniger Glättung reagiert direkter, mehr beruhigt kleine Bewegungen. Die Einstellung wird beim Update erhalten. Die Sensorverarbeitung läuft unabhängig von der Oberfläche und ignoriert mehr als 100 ms alte Messungen.
+
 Bei fehlendem Sensor bleibt die Air-Maus deaktiviert. Die Steuerung pausiert normalerweise beim App-Wechsel; Bluetooth bleibt verbunden. **Bei Display aus weitersteuern** in den Einstellungen bewusst auf dem jeweiligen Handy aktivieren und gegebenenfalls Benachrichtigungen erlauben. Nur eine bereits gestartete Air-Maus darf dann bei ausgeschaltetem Display weiterlaufen. In der Benachrichtigung **Steuerung stoppen** oder **Beenden** wählen.
 
 ## Kacheln anordnen und ihre Größe ändern
@@ -93,6 +95,10 @@ Für den normalen Tastaturmodus am PC **Deutsch (Deutschland)** wählen und Fest
 
 **Einstellungen → Erklärungen anzeigen** blendet zusätzliche Hinweise ein. Unter **Diagnose ohne Textinhalte** stehen Betriebsereignisse und Fehler; die Diagnose lässt sich bei Bedarf kopieren. Sie enthält keine eingegebenen Texte oder Codes.
 
-Wenn keine Verbindung entsteht, zuerst Bluetooth, Gerätefreigaben und die Windows-Kopplung prüfen; danach unter Verbindung Bluetooth erneut starten. Ein unbekannter Verbindungszustand bedeutet keine bestätigte Eingabe am PC. Die konkreten Bluetooth-Eigenschaften und das Verhalten bei ausgeschaltetem Display hängen auch von der Handy-ROM ab. [Prüfgrenzen dieser Version](qa/0.0.8.md).
+Bei verzögertem Mauszeiger Touchpad und Air-Maus einzeln prüfen: eine kurze Bewegung, anhalten und die Richtung wechseln. Seit 0.0.9 werden alte Bewegungsabschnitte verworfen; der Sender holt keine versäumten Maus-Timer nach. Nach einem abgeschlossenen Aufruf hält er für normale Bewegung mindestens 20 ms Abstand. Bei Überlast können Bewegungsstrecken kürzer werden. Maustastenwechsel bleiben in Reihenfolge; ein Rückstau überalterter Klicks stoppt die Verbindung, statt ihn später abzuspielen.
+
+Die Diagnose ergänzt **Lokale Mausübertragung seit App-Start**: gesendete Pakete, verworfene alte Bewegungsserien, letzte/maximale Dauer des Bluetooth-Aufrufs, wartende Tastenwechsel und Rückstau-Abbrüche. Die Werte bleiben nur für den laufenden App-Prozess erhalten. Ein kurzer Android-Aufruf beweist keine schnelle Ankunft am PC. Wenn es weiter hakt, nach dem Auftreten die Diagnose kopieren und angeben, ob Touchpad, Gyro oder beide betroffen waren und ob der Zeiger nach dem Anhalten weiterlief.
+
+Wenn keine Verbindung entsteht, zuerst Bluetooth, Gerätefreigaben und die Windows-Kopplung prüfen; danach unter Verbindung Bluetooth erneut starten. Ein unbekannter Verbindungszustand bedeutet keine bestätigte Eingabe am PC. Die konkreten Bluetooth-Eigenschaften und das Verhalten bei ausgeschaltetem Display hängen auch von der Handy-ROM ab. [Prüfgrenzen dieser Version](qa/0.0.9.md).
 
 © 2026 Tim Weißbach · AirPit

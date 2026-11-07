@@ -2,6 +2,9 @@ package de.airpit.app.core;
 
 /** Integrates angular rates, preserving subpixel movement across reports. */
 public final class MotionFilter {
+    /** Full useful adjustment range without the former 65–162 ms smoothing tail. */
+    public static double smoothingSeconds(int percent){return .004+Math.max(0,Math.min(100,percent))*.00045;}
+    public static boolean freshSample(long timestamp,long now,long started){return timestamp>=started&&timestamp<=now&&now-timestamp<=100_000_000L;}
     private double remainderX,remainderY,smoothX,smoothY;
     public void reset() { remainderX=remainderY=smoothX=smoothY=0; }
     public int[] step(double yaw,double pitch,double seconds,double gain,double smoothing,double deadzone,boolean invertX,boolean invertY) {

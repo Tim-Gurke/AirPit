@@ -1,18 +1,26 @@
-# AirPit 0.0.8
+# AirPit 0.0.9
 
 [Projektseite der Pit-Apps](https://wohnpit.extraordinarygrove.chatgpt.site/airpit/) · [WohnPit – Energie, Gas und Wasser](https://github.com/Tim-Gurke/WohnPit)
 
-[Download](https://github.com/Tim-Gurke/AirPit/releases/latest) · [Anleitung](docs/ANLEITUNG.md) · [Versionshistorie](docs/VERSIONSHISTORIE.md) · [Prüfbericht](docs/qa/0.0.8.md)
+[Download](https://github.com/Tim-Gurke/AirPit/releases/latest) · [Anleitung](docs/ANLEITUNG.md) · [Versionshistorie](docs/VERSIONSHISTORIE.md) · [Prüfbericht](docs/qa/0.0.9.md)
 
 Dein Android-Handy als **Bluetooth-Air-Maus, Touchpad und Tastatur für Windows**, mit frei anpassbarer Bedienfläche im Stil der Pit-Apps.
 
-**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.8/AirPit-v0.0.8.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.8/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.8.md)
+**[Android-APK herunterladen](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.9/AirPit-v0.0.9.apk)** · **[Optionaler Windows-Helfer für Gboard-Emojis](https://github.com/Tim-Gurke/AirPit/releases/download/v0.0.9/AirPit-Unicode-Windows.zip)** · [Änderungen und Testhinweise](docs/releases/0.0.9.md)
 
-| Anordnen · Raster wie Watt’n’Pit | Kachelgröße direkt und mit Regler |
+| Bedienfläche | Diagnose der Mausübertragung |
 |---|---|
-| ![AirPit 0.0.8 Anordnungseditor](docs/screenshots/0.0.8-anordnen.png) | ![AirPit 0.0.8 Kachelgröße](docs/screenshots/0.0.8-groesse.png) |
+| ![AirPit 0.0.9 Bedienfläche](docs/screenshots/0.0.9-bedienung.png) | ![AirPit 0.0.9 Mausdiagnose](docs/screenshots/0.0.9-diagnose.png) |
 
 Aktuelle Aufnahmen der signierten App im Android-9-Emulator. Dort ist kein Bluetooth-Gerät vorhanden; die Bilder belegen die Oberfläche, keine echte PC-Verbindung.
+
+## Direktere Mausbewegung
+
+0.0.9 behebt Ursachen für nachlaufende Bewegungen bei Touchpad und Gyro: Der Maussender wartet nach jedem abgeschlossenen Bluetooth-Aufruf, statt versäumte Timeraufrufe nachzuholen. Kurze aktuelle Bewegungsabschnitte werden zusammengefasst; veraltete Bewegungen und abgeschnittene große Touchpad-Deltas werden nicht später nachgesendet. Im Leerlauf läuft kein Maus-Sendetimer. Tastendruck und Loslassen bleiben geordnet; überalterte Klickfolgen beenden die Sitzung.
+
+Die Gyro-Verarbeitung hat einen eigenen Sensor-Thread, verwirft alte Sensordaten und nutzt kürzere Glättungszeiten. Gespeicherte Reglerwerte bleiben erhalten; derselbe Glättungswert reagiert jetzt direkter. Unter **Einstellungen → Diagnose ohne Textinhalte** stehen Paketanzahl, verworfene alte Bewegungsabschnitte und Dauer der Android-Bluetooth-Aufrufe. Diese Zeiten bestätigen keine Ankunft am PC.
+
+Automatische Tests prüfen langsame Transportaufrufe bis 250 ms, Richtungswechsel und Loslassen. Die tatsächliche Latenz am S10 und Windows-PC muss weiterhin im Betrieb geprüft werden. [Prüfbericht und Grenzen](docs/qa/0.0.9.md).
 
 ## Einstellungen sichern und wiederherstellen
 
@@ -24,7 +32,7 @@ Bluetooth-Kopplungen, PC-Adressen, Codes, Texte und die gerätebezogene Display-
 
 ## Mit Windows verbinden
 
-1. APK auf dem S10 installieren; 0.0.8 lässt sich mit derselben Signierung über die bisherigen Versionen bis 0.0.7 installieren.
+1. APK auf dem S10 installieren; 0.0.9 lässt sich mit derselben Signierung über 0.0.8 und frühere AirPit-Versionen installieren. Die vorhandene App behalten.
 2. Oben **Verbinden** antippen und Bluetooth bzw. „Geräte in der Nähe“ erlauben.
 3. Bei der ersten Einrichtung unter **Verbindung → Für PC sichtbar** die Sichtbarkeit bestätigen.
 4. In Windows unter **Bluetooth-Gerät hinzufügen** das Handy auswählen und die Kopplung bestätigen. Windows kann den normalen Bluetooth-Namen des S10 anzeigen.
@@ -115,7 +123,7 @@ Die Übertragung ist bewusst langsamer, damit kurze Tastenzustände nicht verlor
 
 AirPit benötigt kein Konto, Internet oder WLAN. Es werden keine Texteingabeprotokolle angelegt. Der letzte erfolgreiche Text bleibt zum Wiederherstellen nur im Arbeitsspeicher. Dauerhaft gespeichert werden Bedienungseinstellungen, Layouts und der zuletzt verwendete Bluetooth-PC.
 
-Die begrenzte Diagnose zeigt Betriebsereignisse, Anzahl gesendeter Zeichen und Fehler, keine Textinhalte oder Kopplungscodes. Unter Einstellungen ansehen und bei Bedarf kopieren. Gboard bleibt eine eigenständige App mit eigenen Einstellungen und eigener Datenverarbeitung.
+Die begrenzte Diagnose zeigt Betriebsereignisse, Anzahl gesendeter Zeichen, lokale Mausübertragungszeiten und Fehler, keine Textinhalte oder Kopplungscodes. Unter Einstellungen ansehen und bei Bedarf kopieren. Gboard bleibt eine eigenständige App mit eigenen Einstellungen und eigener Datenverarbeitung.
 
 ## Bauen und prüfen
 

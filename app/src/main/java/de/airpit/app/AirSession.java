@@ -16,7 +16,8 @@ public final class AirSession {
     public final HidController hid;
     public final AirMotion motion;
     public final android.content.SharedPreferences prefs;
-    public boolean airOn,dragging,holding,touching,serviceRunning,visible;
+    public volatile boolean airOn;
+    public boolean dragging,holding,touching,serviceRunning,visible;
     public final TextDraft textDraft=new TextDraft();
     public Observer observer;
     private PowerManager.WakeLock wake;
@@ -57,7 +58,7 @@ public final class AirSession {
         // Screen-off mode keeps only an explicitly started air session running.
     }
     public void hold(){motion.hold(holding||touching);}
-    public void configure(){motion.gain=500+prefs.getInt("speed",50)*24;motion.smoothing=.012+prefs.getInt("smooth",35)*.0015;motion.deadzone=.004+prefs.getInt("steady",30)*.0005;motion.invertX=prefs.getBoolean("invertX",false);motion.invertY=prefs.getBoolean("invertY",false);motion.setAxes(prefs.getInt("gyroHorizontal",MotionAxes.TURN),prefs.getInt("gyroVertical",MotionAxes.FORWARD_TILT));}
+    public void configure(){motion.gain=500+prefs.getInt("speed",50)*24;motion.smoothing=de.airpit.app.core.MotionFilter.smoothingSeconds(prefs.getInt("smooth",35));motion.deadzone=.004+prefs.getInt("steady",30)*.0005;motion.invertX=prefs.getBoolean("invertX",false);motion.invertY=prefs.getBoolean("invertY",false);motion.setAxes(prefs.getInt("gyroHorizontal",MotionAxes.TURN),prefs.getInt("gyroVertical",MotionAxes.FORWARD_TILT));}
     public void updatePower(){
         boolean needed=serviceRunning&&airOn&&keepOff()&&hidReady();
         if(needed&&wake==null){PowerManager p=(PowerManager)context.getSystemService(Context.POWER_SERVICE);if(p!=null){wake=p.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,"AirPit:motion");wake.setReferenceCounted(false);}}
@@ -66,5 +67,5 @@ public final class AirSession {
     public void ended(){pauseAll();hid.stop();hid.unicode.close();serviceRunning=false;updatePower();notifyUi();}
     public void notifyUi(){if(observer!=null)observer.changed();if(ControlService.active!=null)ControlService.active.refresh();}
     public synchronized void record(String event){if(events.size()>=80)events.removeFirst();events.addLast(new SimpleDateFormat("HH:mm:ss",Locale.GERMANY).format(new Date())+" · "+event);}
-    public synchronized String diagnostics(){return "AirPit "+BuildConfig.VERSION_NAME+"\nAndroid "+Build.VERSION.RELEASE+" · "+Build.MANUFACTURER+" "+Build.MODEL+"\nKeine Texte oder Codes im Protokoll.\n\n"+String.join("\n",events);}
+    public synchronized String diagnostics(){return "AirPit "+BuildConfig.VERSION_NAME+"\nAndroid "+Build.VERSION.RELEASE+" · "+Build.MANUFACTURER+" "+Build.MODEL+"\nKeine Texte oder Codes im Protokoll.\n\n"+hid.mouseDiagnostics()+"\n\n"+String.join("\n",events);}
 }

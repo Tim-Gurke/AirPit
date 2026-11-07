@@ -7,6 +7,7 @@ import android.graphics.Path;
 import android.view.MotionEvent;
 import android.view.View;
 import de.airpit.app.core.HidReports;
+import de.airpit.app.core.RelativeMotion;
 
 /** One-finger pointer, tap to click, two-finger scroll/right tap. */
 public final class TouchPad extends View {
@@ -18,7 +19,8 @@ public final class TouchPad extends View {
     private int accent,muted;
     private boolean touched,two,scrolled;
     private float x,y,startX,startY,focusY,maxDistance;
-    private double remainderX,remainderY,remainderWheel;
+    private final RelativeMotion motion=new RelativeMotion();
+    private double remainderWheel;
     private long startTime;
     private int speedPercent=DEFAULT_SPEED_PERCENT;
     public float uiScale=1;
@@ -30,7 +32,7 @@ public final class TouchPad extends View {
     }
     public void setSpeedPercent(int percent){
         int next=Math.max(MIN_SPEED_PERCENT,Math.min(MAX_SPEED_PERCENT,percent));
-        if(next!=speedPercent){speedPercent=next;remainderX=remainderY=0;}
+        if(next!=speedPercent){speedPercent=next;motion.reset();}
     }
     @Override protected void onDraw(Canvas c) {
         super.onDraw(c);
@@ -53,22 +55,21 @@ public final class TouchPad extends View {
             case MotionEvent.ACTION_DOWN:
                 getParent().requestDisallowInterceptTouchEvent(true);
                 touched=true;two=false;scrolled=false;maxDistance=0;startTime=e.getEventTime();
-                startX=x=e.getX();startY=y=e.getY();focusY=y;remainderX=remainderY=remainderWheel=0;sink.touching(true);break;
+                startX=x=e.getX();startY=y=e.getY();focusY=y;motion.reset();remainderWheel=0;sink.touching(true);break;
             case MotionEvent.ACTION_POINTER_DOWN:
                 two=true;focusY=(e.getY(0)+e.getY(1))/2;break;
             case MotionEvent.ACTION_MOVE:
                 if(e.getPointerCount()>=2) {
                     two=true;float focus=(e.getY(0)+e.getY(1))/2;
                     remainderWheel+=(focusY-focus)/(22*density);focusY=focus;
-                    int steps=HidReports.clamp((int)remainderWheel);remainderWheel-=steps;
+                    int steps=HidReports.clamp((int)remainderWheel);remainderWheel=Math.max(-.999,Math.min(.999,remainderWheel-steps));
                     if(steps!=0){scrolled=true;sink.move(0,0,steps);}
                 } else {
                     maxDistance=Math.max(maxDistance,(float)Math.hypot(e.getX()-startX,e.getY()-startY));
                     if(!two) {
                         double factor=speedPercent/100.0;
-                        remainderX+=(e.getX()-x)*1.7/density*factor;remainderY+=(e.getY()-y)*1.7/density*factor;
-                        int dx=HidReports.clamp((int)remainderX),dy=HidReports.clamp((int)remainderY);
-                        remainderX-=dx;remainderY-=dy;sink.move(dx,dy,0);
+                        motion.add((e.getX()-x)*1.7/density*factor,(e.getY()-y)*1.7/density*factor);
+                        sink.move(motion.x(),motion.y(),0);
                     }
                 }
                 x=e.getX();y=e.getY();break;

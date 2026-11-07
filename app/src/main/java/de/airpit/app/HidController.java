@@ -14,6 +14,7 @@ import android.os.Looper;
 import de.airpit.app.core.GermanKeyboard;
 import de.airpit.app.core.HidReports;
 import de.airpit.app.core.KeyboardSender;
+import de.airpit.app.core.MouseStream;
 import java.util.concurrent.*;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -41,17 +42,17 @@ public final class HidController {
     private final ScheduledExecutorService linkGuard=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"AirPit link guard");t.setDaemon(true);return t;});
     private volatile long pointerWriteSince;
     private volatile long uiHeartbeat=System.nanoTime();
-    private final Object mouseLock=new Object();
-    private int pendingX,pendingY,pendingWheel;
-    private boolean mouseDirty;
+    private final MouseStream mouse=new MouseStream();
+    private final Object pumpLock=new Object();
+    private ScheduledFuture<?> mousePump;
+    private boolean mouseSending;
+    private long pumpTicket;
     private long nextTextId,activeTextId;
     private String activeText;
     private volatile boolean active;
     private boolean proxyRequested;
-    private volatile int buttons;
     private String detail="Bluetooth noch nicht gestartet";
     private volatile byte[] lastKeyboard=new byte[8];
-    private volatile long generation;
     private long lifecycle;
 
     public HidController(Context context,Listener listener) {
@@ -69,13 +70,13 @@ public final class HidController {
             public void changed(){listener.changed();}
             public void finished(long id,boolean ok,String error){finishText(id,ok,error);}
         });
-        pointer.scheduleAtFixedRate(this::flushMouse,0,16,TimeUnit.MILLISECONDS);
-        linkGuard.scheduleAtFixedRate(()->{long now=System.nanoTime(),since=pointerWriteSince;if(connected()&&since!=0&&now-since>300_000_000L)emergencyDisconnect();if(buttons!=0&&now-uiHeartbeat>400_000_000L){releaseMouse();handler.post(listener::changed);}},50,50,TimeUnit.MILLISECONDS);
+        linkGuard.scheduleAtFixedRate(()->{long now=System.nanoTime(),since=pointerWriteSince;if(connected()&&since!=0&&now-since>300_000_000L)emergencyDisconnect();if(mouse.buttons()!=0&&now-uiHeartbeat>400_000_000L){releaseMouse();handler.post(listener::changed);}},50,50,TimeUnit.MILLISECONDS);
     }
     public String detail() { return detail; }
     public boolean connected() { return registered&&host!=null; }
     public void heartbeat(){uiHeartbeat=System.nanoTime();}
-    public int mouseButtons(){return buttons;}
+    public int mouseButtons(){return mouse.buttons();}
+    public String mouseDiagnostics(){MouseStream.Stats s=mouse.stats();return "Lokale Mausübertragung seit App-Start:\n"+s.packets+" Pakete · "+s.discarded+" alte Bewegungsserien verworfen\nBluetooth-Aufruf zuletzt / maximal: "+(s.lastWriteNanos/1_000_000)+" / "+(s.maxWriteNanos/1_000_000)+" ms\nWartende Tastenwechsel: "+s.queuedEdges+" · Rückstau-Abbrüche: "+s.stalls+"\nDiese Zeiten messen Android-Aufrufe, nicht die bestätigte Ankunft am PC.";}
     private void changed(String message) { detail=message;listener.changed(); }
 
     public void start() {
@@ -161,7 +162,7 @@ public final class HidController {
             if(hid==null||!active||session!=lifecycle)return;
             try {
                 if(type==BluetoothHidDevice.REPORT_TYPE_INPUT&&(id==HidReports.MOUSE||id==HidReports.KEYBOARD)) {
-                    byte[] report=id==HidReports.MOUSE?HidReports.mouse(buttons,0,0,0):lastKeyboard.clone();
+                    byte[] report=id==HidReports.MOUSE?HidReports.mouse(mouseButtons(),0,0,0):lastKeyboard.clone();
                     if(bufferSize>0&&bufferSize<report.length) report=java.util.Arrays.copyOf(report,bufferSize);
                     final byte[] answer=report;final BluetoothHidDevice profile=hid;administration.execute(()->{try{if(active&&session==lifecycle&&profile==hid)profile.replyReport(device,type,id,answer);}catch(Exception ignored){}});
                 } else {final BluetoothHidDevice profile=hid;administration.execute(()->{try{profile.reportError(device,BluetoothHidDevice.ERROR_RSP_UNSUPPORTED_REQ);}catch(Exception ignored){}});}
@@ -215,34 +216,47 @@ public final class HidController {
         try{return profile.sendReport(device,id,bytes);}catch(SecurityException|IllegalStateException e){return false;}
     }
     public void move(int x,int y,int wheel) {
-        synchronized(mouseLock){pendingX=Math.max(-254,Math.min(254,pendingX+x));pendingY=Math.max(-254,Math.min(254,pendingY+y));pendingWheel=Math.max(-127,Math.min(127,pendingWheel+wheel));}
+        if(!connected()||(x|y|wheel)==0)return;
+        mouse.move(x,y,wheel,System.nanoTime());requestMouseFlush();
     }
-    private void flushMouse(){
+    private void requestMouseFlush(){
         if(!connected())return;
-        int x,y,w,b;
-        synchronized(mouseLock){if(!mouseDirty&&(pendingX|pendingY|pendingWheel)==0)return;x=HidReports.clamp(pendingX);y=HidReports.clamp(pendingY);w=pendingWheel;b=buttons;pendingX-=x;pendingY-=y;pendingWheel=0;mouseDirty=false;}
-        pointerWriteSince=System.nanoTime();
-        try{if(!report(HidReports.MOUSE,HidReports.mouse(b,x,y,w)))emergencyDisconnect();}finally{pointerWriteSince=0;}
+        synchronized(pumpLock){
+            if(mouseSending)return;
+            long delay=mouse.delay(System.nanoTime());
+            if(delay<0){if(mousePump!=null)mousePump.cancel(false);mousePump=null;pumpTicket++;return;}
+            if(mousePump!=null&&!mousePump.isDone()&&mousePump.getDelay(TimeUnit.NANOSECONDS)<=delay)return;
+            if(mousePump!=null)mousePump.cancel(false);
+            final long ticket=++pumpTicket;mousePump=pointer.schedule(()->flushMouse(ticket),delay,TimeUnit.NANOSECONDS);
+        }
+    }
+    private void flushMouse(long ticket){
+        synchronized(pumpLock){if(ticket!=pumpTicket||mouseSending||!connected())return;mousePump=null;mouseSending=true;}
+        try{
+            MouseStream.Frame frame=mouse.take(System.nanoTime());if(frame==null)return;
+            if(frame.stalled){emergencyDisconnect();return;}
+            long started=System.nanoTime();pointerWriteSince=started;boolean ok=false;
+            try{ok=report(HidReports.MOUSE,HidReports.mouse(frame.buttons,frame.x,frame.y,frame.wheel));}catch(RuntimeException ignored){}
+            finally{mouse.complete(frame,started,System.nanoTime(),ok);pointerWriteSince=0;}
+            if(!ok)emergencyDisconnect();
+        }finally{synchronized(pumpLock){mouseSending=false;}requestMouseFlush();}
     }
     public void button(int mask,boolean down) {
         if(!connected())return;
-        synchronized(mouseLock){buttons=down?(buttons|mask):(buttons&~mask);mouseDirty=true;}
+        if(!mouse.button(mask,down,System.nanoTime())){emergencyDisconnect();return;}requestMouseFlush();
     }
     public void click(int mask) {
         if(!connected())return;
-        button(mask,true);
-        final long g=generation;
-        pointer.schedule(()->{if(g==generation)button(mask,false);},45,TimeUnit.MILLISECONDS);
+        if(!mouse.tap(mask,System.nanoTime())){emergencyDisconnect();return;}requestMouseFlush();
     }
-    public void releaseMouse() {synchronized(mouseLock){buttons=0;pendingX=pendingY=pendingWheel=0;mouseDirty=true;}}
+    public void releaseMouse() {mouse.reset();requestMouseFlush();}
     public void releaseAll() {
         clearLocalInput();releaseMouse();keyboard.releaseKeys();
-        pointer.execute(()->{if(connected())report(HidReports.MOUSE,HidReports.mouse(0,0,0,0));});
     }
     private void clearLocalInput() {
-        generation++;keyboard.cancel();if(unicode.sending)unicode.close();
+        keyboard.cancel();if(unicode.sending)unicode.close();
         if(typing){String source=activeText;typing=false;activeText=null;activeTextId=++nextTextId;if(source!=null)listener.textFinished(source,false);}
-        buttons=0;lastKeyboard=new byte[8];
+        mouse.reset();lastKeyboard=new byte[8];
     }
 
     public void text(String source) {
